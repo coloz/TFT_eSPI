@@ -92,6 +92,7 @@ Support for the XPT2046 touch screen controller is built into the library and ca
 Displays using the following controllers are supported:
 
 * GC9A01
+* GC9107
 * ILI9163
 * ILI9225
 * ILI9341

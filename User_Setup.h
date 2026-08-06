@@ -63,6 +63,7 @@
 //#define SSD1963_800ALT_DRIVER
 //#define ILI9225_DRIVER
 //#define GC9A01_DRIVER
+//#define GC9107_DRIVER      // 128 x 128 or 128 x 160 GRAM
 
 // Some displays support SPI reads via the MISO pin, other displays have a single
 // bi-directional SDA pin and the library will try to read this via the MOSI line.
@@ -70,7 +71,7 @@
 
 // #define TFT_SDA_READ      // This option is for ESP32 ONLY, tested with ST7789 and GC9A01 display only
 
-// For ST7735, ST7789 and ILI9341 ONLY, define the colour order IF the blue and red are swapped on your display
+// For ST7735, ST7789, ILI9341 and GC9107 ONLY, define the colour order IF the blue and red are swapped on your display
 // Try ONE option at a time to find the correct colour order for your display
 
 //  #define TFT_RGB_ORDER TFT_RGB  // Colour order Red-Green-Blue
@@ -80,7 +81,7 @@
 
 // #define M5STACK
 
-// For ST7789, ST7735, ILI9163 and GC9A01 ONLY, define the pixel width and height in portrait orientation
+// For ST7789, ST7735, ILI9163, GC9A01 and GC9107 ONLY, define the pixel width and height in portrait orientation
 // #define TFT_WIDTH  80
 // #define TFT_WIDTH  128
 // #define TFT_WIDTH  172 // ST7789 172 x 320
@@ -91,6 +92,15 @@
 // #define TFT_HEIGHT 240 // ST7789 240 x 240
 // #define TFT_HEIGHT 320 // ST7789 240 x 320
 // #define TFT_HEIGHT 240 // GC9A01 240 x 240
+
+// For GC9107 ONLY, select the GRAM mapping if TFT_HEIGHT alone is ambiguous.
+// The driver otherwise selects 128 x 160 when TFT_HEIGHT > 128, else 128 x 128.
+// #define GC9107_MEMORY_128X128
+// #define GC9107_MEMORY_128X160
+
+// For cropped GC9107 panels, define the portrait offsets into GRAM.
+// #define GC9107_COL_OFFSET 34 // 60 x 160 panel; use 16 for 96 x 160
+// #define GC9107_ROW_OFFSET 0
 
 // For ST7735 ONLY, define the type of display, originally this was based on the
 // colour of the tab on the screen protector film but this is not always true, so try
