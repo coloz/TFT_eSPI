@@ -267,6 +267,9 @@
 #elif defined (SSD1351_DRIVER)
      #include "TFT_Drivers/SSD1351_Defines.h"
      #define  TFT_DRIVER 0x1351
+#elif defined (SSD1331_DRIVER)
+     #include "TFT_Drivers/SSD1331_Defines.h"
+     #define  TFT_DRIVER 0x1331
 #elif defined (SSD1963_480_DRIVER)
      #include "TFT_Drivers/SSD1963_Defines.h"
      #define  TFT_DRIVER 0x1963
@@ -285,6 +288,9 @@
 #elif defined (GC9107_DRIVER)
      #include "TFT_Drivers/GC9107_Defines.h"
      #define  TFT_DRIVER 0x9107
+#elif defined (GC9D01_DRIVER)
+     #include "TFT_Drivers/GC9D01_Defines.h"
+     #define  TFT_DRIVER 0x9D01
 #elif defined (ILI9225_DRIVER)
      #include "TFT_Drivers/ILI9225_Defines.h"
      #define  TFT_DRIVER 0x9225

@@ -378,14 +378,14 @@ uint16_t tft_driver; // Hexadecimal code
 uint16_t tft_width;  // Rotation 0 width and height
 uint16_t tft_height;
 
-uint8_t r0_x_offset; // Display offsets, not all used yet
-uint8_t r0_y_offset;
-uint8_t r1_x_offset;
-uint8_t r1_y_offset;
-uint8_t r2_x_offset;
-uint8_t r2_y_offset;
-uint8_t r3_x_offset;
-uint8_t r3_y_offset;
+int16_t r0_x_offset; // Display offsets, not all used yet
+int16_t r0_y_offset;
+int16_t r1_x_offset;
+int16_t r1_y_offset;
+int16_t r2_x_offset;
+int16_t r2_y_offset;
+int16_t r3_x_offset;
+int16_t r3_y_offset;
 
 int8_t pin_tft_mosi; // SPI pins
 int8_t pin_tft_miso;
@@ -880,8 +880,8 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
   float    wedgeLineDistance(float pax, float pay, float bax, float bay, float dr);
 
            // Display variant settings
-  uint8_t  tabcolor,                   // ST7735 screen protector "tab" colour (now invalid)
-           colstart = 0, rowstart = 0; // Screen display area to CGRAM area coordinate offsets
+  uint8_t  tabcolor;                   // ST7735 screen protector "tab" colour (now invalid)
+  int16_t  colstart = 0, rowstart = 0; // Screen display area to CGRAM area coordinate offsets
 
            // Port and pin masks for control signals (ESP826 only) - TODO: remove need for this
   volatile uint32_t *dcport, *csport;

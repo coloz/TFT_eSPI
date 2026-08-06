@@ -751,6 +751,9 @@ void TFT_eSPI::init(uint8_t tc)
 #elif defined (SSD1351_DRIVER)
     #include "TFT_Drivers/SSD1351_Init.h"
 
+#elif defined (SSD1331_DRIVER)
+    #include "TFT_Drivers/SSD1331_Init.h"
+
 #elif defined (SSD1963_DRIVER)
     #include "TFT_Drivers/SSD1963_Init.h"
 
@@ -759,6 +762,9 @@ void TFT_eSPI::init(uint8_t tc)
 
 #elif defined (GC9107_DRIVER)
      #include "TFT_Drivers/GC9107_Init.h"
+
+#elif defined (GC9D01_DRIVER)
+     #include "TFT_Drivers/GC9D01_Init.h"
 
 #elif defined (ILI9225_DRIVER)
      #include "TFT_Drivers/ILI9225_Init.h"
@@ -855,6 +861,9 @@ void TFT_eSPI::setRotation(uint8_t m)
 #elif defined (SSD1351_DRIVER)
     #include "TFT_Drivers/SSD1351_Rotation.h"
 
+#elif defined (SSD1331_DRIVER)
+    #include "TFT_Drivers/SSD1331_Rotation.h"
+
 #elif defined (SSD1963_DRIVER)
     #include "TFT_Drivers/SSD1963_Rotation.h"
 
@@ -863,6 +872,9 @@ void TFT_eSPI::setRotation(uint8_t m)
 
 #elif defined (GC9107_DRIVER)
      #include "TFT_Drivers/GC9107_Rotation.h"
+
+#elif defined (GC9D01_DRIVER)
+     #include "TFT_Drivers/GC9D01_Rotation.h"
 
 #elif defined (ILI9225_DRIVER)
      #include "TFT_Drivers/ILI9225_Rotation.h"
@@ -3396,17 +3408,25 @@ void TFT_eSPI::setWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
     while (spi_get_hw(SPI_X)->sr & SPI_SSPSR_BSY_BITS) {};
     hw_write_masked(&spi_get_hw(SPI_X)->cr0, (16 - 1) << SPI_SSPCR0_DSS_LSB, SPI_SSPCR0_DSS_BITS);
   #endif
-#elif defined (SSD1351_DRIVER)
+#elif defined (SSD1351_DRIVER) || defined (SSD1331_DRIVER)
   if (rotation & 1) {
     transpose(x0, y0);
     transpose(x1, y1);
   }
   SPI_BUSY_CHECK;
   DC_C; tft_Write_8(TFT_CASET);
-  DC_D; tft_Write_16(x1 | (x0 << 8));
+  #if defined (SSD1351_DRIVER)
+    DC_D;
+  #endif
+  tft_Write_16(x1 | (x0 << 8));
   DC_C; tft_Write_8(TFT_PASET);
-  DC_D; tft_Write_16(y1 | (y0 << 8));
-  DC_C; tft_Write_8(TFT_RAMWR);
+  #if defined (SSD1351_DRIVER)
+    DC_D;
+  #endif
+  tft_Write_16(y1 | (y0 << 8));
+  #if defined (SSD1351_DRIVER)
+    DC_C; tft_Write_8(TFT_RAMWR);
+  #endif
   DC_D;
 #else
   #if defined (SSD1963_DRIVER)
@@ -3640,7 +3660,7 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
   #endif
 
 // Temporary solution is to include the RP2040 optimised code here
-#elif (defined (ARDUINO_ARCH_RP2040) || defined (ARDUINO_ARCH_MBED)) && !defined (SSD1351_DRIVER)
+#elif (defined (ARDUINO_ARCH_RP2040) || defined (ARDUINO_ARCH_MBED)) && !defined (SSD1351_DRIVER) && !defined (SSD1331_DRIVER)
 
   #if defined (SSD1963_DRIVER)
     if ((rotation & 0x1) == 0) { transpose(x, y); }
@@ -3746,19 +3766,25 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
 
     SPI_BUSY_CHECK;
 
-  #if defined (SSD1351_DRIVER)
+  #if defined (SSD1351_DRIVER) || defined (SSD1331_DRIVER)
     if (rotation & 0x1) { transpose(x, y); }
     // No need to send x if it has not changed (speeds things up)
     if (addr_col != x) {
       DC_C; tft_Write_8(TFT_CASET);
-      DC_D; tft_Write_16(x | (x << 8));
+      #if defined (SSD1351_DRIVER)
+        DC_D;
+      #endif
+      tft_Write_16(x | (x << 8));
       addr_col = x;
     }
 
     // No need to send y if it has not changed (speeds things up)
     if (addr_row != y) {
       DC_C; tft_Write_8(TFT_PASET);
-      DC_D; tft_Write_16(y | (y << 8));
+      #if defined (SSD1351_DRIVER)
+        DC_D;
+      #endif
+      tft_Write_16(y | (y << 8));
       addr_row = y;
     }
   #else
@@ -3777,7 +3803,9 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
     }
   #endif
 
-  DC_C; tft_Write_8(TFT_RAMWR);
+  #if !defined (SSD1331_DRIVER)
+    DC_C; tft_Write_8(TFT_RAMWR);
+  #endif
 
   #if defined(TFT_PARALLEL_8_BIT) || defined(TFT_PARALLEL_16_BIT) || !defined(ESP32)
     DC_D; tft_Write_16(color);

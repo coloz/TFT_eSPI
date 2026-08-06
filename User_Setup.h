@@ -58,12 +58,14 @@
 //#define RM68140_DRIVER
 //#define ST7796_DRIVER
 //#define SSD1351_DRIVER
+//#define SSD1331_DRIVER      // 96 x 64 RGB OLED
 //#define SSD1963_480_DRIVER
 //#define SSD1963_800_DRIVER
 //#define SSD1963_800ALT_DRIVER
 //#define ILI9225_DRIVER
 //#define GC9A01_DRIVER
 //#define GC9107_DRIVER      // 128 x 128 or 128 x 160 GRAM
+//#define GC9D01_DRIVER      // 160 x 160 dual gate or 40/50/60 x 160 single gate
 
 // Some displays support SPI reads via the MISO pin, other displays have a single
 // bi-directional SDA pin and the library will try to read this via the MOSI line.
@@ -71,7 +73,7 @@
 
 // #define TFT_SDA_READ      // This option is for ESP32 ONLY, tested with ST7789 and GC9A01 display only
 
-// For ST7735, ST7789, ILI9341 and GC9107 ONLY, define the colour order IF the blue and red are swapped on your display
+// For ST7735, ST7789, ILI9341, GC9107, GC9D01 and SSD1331 ONLY, define the colour order IF the blue and red are swapped on your display
 // Try ONE option at a time to find the correct colour order for your display
 
 //  #define TFT_RGB_ORDER TFT_RGB  // Colour order Red-Green-Blue
@@ -81,7 +83,12 @@
 
 // #define M5STACK
 
-// For ST7789, ST7735, ILI9163, GC9A01 and GC9107 ONLY, define the pixel width and height in portrait orientation
+// For ST7789, ST7735, ILI9163, GC9A01, GC9107, GC9D01 and SSD1331 ONLY, define the pixel width and height in portrait orientation
+// #define TFT_WIDTH  40  // GC9D01 single gate
+// #define TFT_WIDTH  50  // GC9D01 single gate
+// #define TFT_WIDTH  60  // GC9D01 single gate
+// #define TFT_WIDTH  96  // SSD1331
+// #define TFT_WIDTH  160 // GC9D01 dual gate
 // #define TFT_WIDTH  80
 // #define TFT_WIDTH  128
 // #define TFT_WIDTH  172 // ST7789 172 x 320
@@ -101,6 +108,19 @@
 // For cropped GC9107 panels, define the portrait offsets into GRAM.
 // #define GC9107_COL_OFFSET 34 // 60 x 160 panel; use 16 for 96 x 160
 // #define GC9107_ROW_OFFSET 0
+
+// For GC9D01 ONLY, select a gate configuration. The driver infers the three
+// narrow variants from TFT_WIDTH when no option is selected; otherwise dual gate is used.
+// #define GC9D01_DUAL_GATE
+// #define GC9D01_SINGLE_GATE_40X160
+// #define GC9D01_SINGLE_GATE_50X160
+// #define GC9D01_SINGLE_GATE_60X160
+
+// Optional GC9D01 offsets. Known defaults are supplied for each narrow variant.
+// #define GC9D01_X_OFFSET_LANDSCAPE -40
+// #define GC9D01_Y_OFFSET_LANDSCAPE  50
+// #define GC9D01_X_OFFSET_PORTRAIT    10
+// #define GC9D01_Y_OFFSET_PORTRAIT     0
 
 // For ST7735 ONLY, define the type of display, originally this was based on the
 // colour of the tab on the screen protector film but this is not always true, so try

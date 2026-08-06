@@ -93,6 +93,7 @@ Displays using the following controllers are supported:
 
 * GC9A01
 * GC9107
+* GC9D01
 * ILI9163
 * ILI9225
 * ILI9341
@@ -107,6 +108,7 @@ Displays using the following controllers are supported:
 * RM68120 (support files added but untested)
 * RM68140
 * S6D02A1
+* SSD1331
 * SSD1351
 * SSD1963 (this controller only has a parallel interface option)
 * ST7735
