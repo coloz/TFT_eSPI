@@ -75,6 +75,72 @@ menu "TFT_eSPI"
             bool "GC9107"
         config TFT_GC9D01_DRIVER
             bool "GC9D01"
+        config TFT_AXS15231B_DRIVER
+            bool "AXS15231B"
+        config TFT_CO5300_DRIVER
+            bool "CO5300"
+        config TFT_GC9106_DRIVER
+            bool "GC9106"
+        config TFT_GC9C01_DRIVER
+            bool "GC9C01"
+        config TFT_HX8347C_DRIVER
+            bool "HX8347C"
+        config TFT_HX8347D_DRIVER
+            bool "HX8347D"
+        config TFT_HX8352C_DRIVER
+            bool "HX8352C"
+        config TFT_HX8357A_DRIVER
+            bool "HX8357A"
+        config TFT_HX8369A_DRIVER
+            bool "HX8369A"
+        config TFT_ILI9331_DRIVER
+            bool "ILI9331"
+        config TFT_ILI9806_DRIVER
+            bool "ILI9806"
+        config TFT_JBT6K71_DRIVER
+            bool "JBT6K71"
+        config TFT_JD9613_DRIVER
+            bool "JD9613"
+        config TFT_NT35310_DRIVER
+            bool "NT35310"
+        config TFT_NT35510_DRIVER
+            bool "NT35510"
+        config TFT_NT39125_DRIVER
+            bool "NT39125"
+        config TFT_NV3001B_DRIVER
+            bool "NV3001B"
+        config TFT_NV3007_DRIVER
+            bool "NV3007"
+        config TFT_NV3023_DRIVER
+            bool "NV3023"
+        config TFT_NV3041A_DRIVER
+            bool "NV3041A"
+        config TFT_OTM8009A_DRIVER
+            bool "OTM8009A"
+        config TFT_R61529_DRIVER
+            bool "R61529"
+        config TFT_RM67162_DRIVER
+            bool "RM67162"
+        config TFT_RM690B0_DRIVER
+            bool "RM690B0"
+        config TFT_SEPS525_DRIVER
+            bool "SEPS525"
+        config TFT_SH1106_DRIVER
+            bool "SH1106"
+        config TFT_SH8601_DRIVER
+            bool "SH8601"
+        config TFT_SPD2010_DRIVER
+            bool "SPD2010"
+        config TFT_SSD1283A_DRIVER
+            bool "SSD1283A"
+        config TFT_SSD1306_DRIVER
+            bool "SSD1306"
+        config TFT_SSD1357_DRIVER
+            bool "SSD1357"
+        config TFT_ST77916_DRIVER
+            bool "ST77916"
+        config TFT_WEA2012_DRIVER
+            bool "WEA2012"
     endchoice
 
     if TFT_ST7735_DRIVER || TFT_ST7789_DRIVER || TFT_ST7789_2_DRIVER || TFT_ILI9341_DRIVER || TFT_ILI9341_2_DRIVER || TFT_GC9107_DRIVER || TFT_GC9D01_DRIVER || TFT_SSD1331_DRIVER
@@ -98,11 +164,12 @@ menu "TFT_eSPI"
         help
             Enable if using M5Stack module with integrated ILI9341
 
-    if TFT_ST7735_DRIVER || TFT_ST7789_DRIVER || TFT_ST7789_2_DRIVER || TFT_ILI9163_DRIVER || TFT_GC9A01_DRIVER || TFT_GC9107_DRIVER || TFT_GC9D01_DRIVER || TFT_SSD1331_DRIVER
+    if TFT_ST7735_DRIVER || TFT_ST7789_DRIVER || TFT_ST7789_2_DRIVER || TFT_ILI9163_DRIVER || TFT_GC9A01_DRIVER || TFT_GC9107_DRIVER || TFT_GC9D01_DRIVER || TFT_SSD1331_DRIVER || TFT_SSD1306_DRIVER || TFT_SH1106_DRIVER || TFT_SSD1357_DRIVER
         config TFT_WIDTH
             int "LCD pixel width in portrait orientation"
             default 160 if TFT_GC9D01_DRIVER
             default 96 if TFT_SSD1331_DRIVER
+            default 128 if TFT_SSD1306_DRIVER || TFT_SH1106_DRIVER || TFT_SSD1357_DRIVER
             default 128
             range 0 1024
 
@@ -110,6 +177,8 @@ menu "TFT_eSPI"
             int "LCD pixel height in portrait orientation"
             default 160 if TFT_GC9D01_DRIVER
             default 64 if TFT_SSD1331_DRIVER
+            default 64 if TFT_SSD1306_DRIVER || TFT_SH1106_DRIVER
+            default 128 if TFT_SSD1357_DRIVER
             default 128 if TFT_GC9107_DRIVER
             default 240
             range 0 1024

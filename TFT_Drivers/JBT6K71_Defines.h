@@ -1,0 +1,12 @@
+#define TFT_WIDTH 240
+#define TFT_HEIGHT 320
+#define TFT_INIT_DELAY 0x80
+#define TFT_NOP 0x0000
+#define TFT_SWRST TFT_NOP
+#define TFT_CASET 0x0406
+#define TFT_PASET 0x0408
+#define TFT_RAMWR 0x0202
+#define TFT_RAMRD 0x0202
+#define TFT_IDXRD TFT_NOP
+#define TFT_INVOFF TFT_NOP
+#define TFT_INVON TFT_NOP

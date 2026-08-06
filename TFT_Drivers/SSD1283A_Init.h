@@ -1,0 +1,48 @@
+// SSD1283A 16-bit register initialization ported from Arduino_GFX (BSD-licensed).
+{
+  DC_C; tft_Write_16(0x0010);
+  DC_D; tft_Write_16(0x2F8E);
+  DC_C; tft_Write_16(0x0011);
+  DC_D; tft_Write_16(0x000C);
+  DC_C; tft_Write_16(0x0007);
+  DC_D; tft_Write_16(0x0021);
+  DC_C; tft_Write_16(0x0028);
+  DC_D; tft_Write_16(0x0006);
+  DC_C; tft_Write_16(0x0028);
+  DC_D; tft_Write_16(0x0005);
+  DC_C; tft_Write_16(0x0027);
+  DC_D; tft_Write_16(0x057F);
+  DC_C; tft_Write_16(0x0029);
+  DC_D; tft_Write_16(0x89A1);
+  DC_C; tft_Write_16(0x0000);
+  DC_D; tft_Write_16(0x0001);
+  delay(100);
+  DC_C; tft_Write_16(0x0029);
+  DC_D; tft_Write_16(0x80B0);
+  delay(30);
+  DC_C; tft_Write_16(0x0029);
+  DC_D; tft_Write_16(0xFFFE);
+  DC_C; tft_Write_16(0x0007);
+  DC_D; tft_Write_16(0x0223);
+  delay(30);
+  DC_C; tft_Write_16(0x0007);
+  DC_D; tft_Write_16(0x0233);
+  DC_C; tft_Write_16(0x0001);
+  DC_D; tft_Write_16(0x2183);
+  DC_C; tft_Write_16(0x0003);
+  DC_D; tft_Write_16(0x6830);
+  DC_C; tft_Write_16(0x002F);
+  DC_D; tft_Write_16(0xFFFF);
+  DC_C; tft_Write_16(0x002C);
+  DC_D; tft_Write_16(0x8000);
+  DC_C; tft_Write_16(0x0027);
+  DC_D; tft_Write_16(0x0570);
+  DC_C; tft_Write_16(0x0002);
+  DC_D; tft_Write_16(0x0300);
+  DC_C; tft_Write_16(0x000B);
+  DC_D; tft_Write_16(0x580C);
+  DC_C; tft_Write_16(0x0012);
+  DC_D; tft_Write_16(0x0609);
+  DC_C; tft_Write_16(0x0013);
+  DC_D; tft_Write_16(0x3100);
+}

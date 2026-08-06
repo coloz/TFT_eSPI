@@ -1,0 +1,41 @@
+// RM67162 initialization ported from Arduino_GFX (BSD-licensed).
+// Commands are emitted directly so the sequence works with TFT_eSPI SPI and parallel buses.
+{
+  writecommand(0xFE);
+  writedata(0x04);
+  writecommand(0x6A);
+  writedata(0x00);
+  writecommand(0xFE);
+  writedata(0x05);
+  writecommand(0xFE);
+  writedata(0x07);
+  writecommand(0x07);
+  writedata(0x4F);
+  writecommand(0xFE);
+  writedata(0x01);
+  writecommand(0x2A);
+  writedata(0x02);
+  writecommand(0x2B);
+  writedata(0x73);
+  writecommand(0xFE);
+  writedata(0x0A);
+  writecommand(0x29);
+  writedata(0x10);
+  writecommand(0xFE);
+  writedata(0x00);
+  writecommand(0x51);
+  writedata(0xBF);
+  writecommand(0x53);
+  writedata(0x20);
+  writecommand(0x35);
+  writedata(0x00);
+  writecommand(0x3A);
+  writedata(0x75);
+  writecommand(0xC4);
+  writedata(0x80);
+  writecommand(0x11);
+  delay(120);
+  writecommand(0x29);
+  delay(20);
+  writecommand(TFT_INVOFF);
+}

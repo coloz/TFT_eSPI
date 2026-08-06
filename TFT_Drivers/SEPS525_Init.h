@@ -1,0 +1,44 @@
+// SEPS525 initialization ported from Arduino_GFX (BSD-licensed).
+// Commands are emitted directly so the sequence works with TFT_eSPI SPI and parallel buses.
+{
+  writecommand(0x04);
+  writedata(0x01);
+  delay(1);
+  writecommand(0x04);
+  writedata(0x00);
+  delay(1);
+  writecommand(0x06);
+  writedata(0x00);
+  writecommand(0x02);
+  writedata(0x01);
+  writecommand(0x03);
+  writedata(0x30);
+  writecommand(0x28);
+  writedata(0x7F);
+  writecommand(0x29);
+  writedata(0x00);
+  writecommand(0x14);
+  writedata(0x31);
+  writecommand(0x10);
+  writedata(0x45);
+  writecommand(0x11);
+  writedata(0x34);
+  writecommand(0x12);
+  writedata(0x33);
+  writecommand(0x08);
+  writedata(0x04);
+  writecommand(0x09);
+  writedata(0x05);
+  writecommand(0x0A);
+  writedata(0x05);
+  writecommand(0x0B);
+  writedata(0x9D);
+  writecommand(0x0C);
+  writedata(0x8C);
+  writecommand(0x0D);
+  writedata(0x57);
+  writecommand(0x80);
+  writedata(0x00);
+  writecommand(0x06);
+  writedata(0x01);
+}

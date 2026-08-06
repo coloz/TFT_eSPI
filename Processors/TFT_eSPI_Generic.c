@@ -69,6 +69,10 @@ void TFT_eSPI::end_SDA_Read(void)
 ** Description:             Write a block of pixels of the same colour
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
 
   while (len>1) {tft_Write_32D(color); len-=2;}
   if (len) {tft_Write_16(color);}
@@ -79,6 +83,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
 ** Description:             Write a sequence of pixels
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
 
   uint16_t *data = (uint16_t*)data_in;
   if(_swapBytes) {
@@ -154,6 +162,10 @@ uint8_t TFT_eSPI::readByte(void)
 ** Description:             Write a block of pixels of the same colour
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
 
   if(len) { tft_Write_16(color); len--; }
   while(len--) {WR_L; WR_H;}
@@ -165,6 +177,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
   uint16_t *data = (uint16_t*)data_in;
 
   if (_swapBytes) while ( len-- ) {tft_Write_16S(*data); data++;}
@@ -181,6 +197,10 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
   // Split out the colours
   uint8_t r = (color & 0xF800)>>8;
   uint8_t g = (color & 0x07E0)>>3;
@@ -194,6 +214,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 ** Description:             Write a sequence of pixels
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
 
   uint16_t *data = (uint16_t*)data_in;
   if (_swapBytes) {
@@ -224,6 +248,10 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
 ** Description:             Write a block of pixels of the same colour
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
 
   while ( len-- ) {tft_Write_16(color);}
 }
@@ -233,6 +261,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
 ** Description:             Write a sequence of pixels
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
 
   uint16_t *data = (uint16_t*)data_in;
 

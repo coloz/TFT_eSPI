@@ -69,6 +69,39 @@
 //#define GC9A01_DRIVER
 //#define GC9107_DRIVER      // 128 x 128 or 128 x 160 GRAM
 //#define GC9D01_DRIVER      // 160 x 160 dual gate or 40/50/60 x 160 single gate
+//#define AXS15231B_DRIVER
+//#define CO5300_DRIVER
+//#define GC9106_DRIVER
+//#define GC9C01_DRIVER
+//#define HX8347C_DRIVER
+//#define HX8347D_DRIVER
+//#define HX8352C_DRIVER
+//#define HX8357A_DRIVER
+//#define HX8369A_DRIVER
+//#define ILI9331_DRIVER
+//#define ILI9806_DRIVER
+//#define JBT6K71_DRIVER
+//#define JD9613_DRIVER
+//#define NT35310_DRIVER
+//#define NT35510_DRIVER
+//#define NT39125_DRIVER
+//#define NV3001B_DRIVER
+//#define NV3007_DRIVER
+//#define NV3023_DRIVER
+//#define NV3041A_DRIVER
+//#define OTM8009A_DRIVER
+//#define R61529_DRIVER
+//#define RM67162_DRIVER
+//#define RM690B0_DRIVER
+//#define SEPS525_DRIVER
+//#define SH1106_DRIVER       // 1-bit page-buffer OLED
+//#define SH8601_DRIVER
+//#define SPD2010_DRIVER
+//#define SSD1283A_DRIVER
+//#define SSD1306_DRIVER      // 1-bit page-buffer OLED
+//#define SSD1357_DRIVER
+//#define ST77916_DRIVER
+//#define WEA2012_DRIVER
 
 // Some displays support SPI reads via the MISO pin, other displays have a single
 // bi-directional SDA pin and the library will try to read this via the MOSI line.

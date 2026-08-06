@@ -171,6 +171,104 @@ inline void TFT_eSPI::end_tft_read(void){
   SET_BUS_WRITE_MODE;
 }
 
+#if defined (TFT_MONO_DRIVER)
+void TFT_eSPI::_monoMap(int32_t x, int32_t y, int16_t &px, int16_t &py)
+{
+  switch (rotation & 3) {
+    case 1: px = _init_width - 1 - y; py = x; break;
+    case 2: px = _init_width - 1 - x; py = _init_height - 1 - y; break;
+    case 3: px = y; py = _init_height - 1 - x; break;
+    default: px = x; py = y; break;
+  }
+}
+
+void TFT_eSPI::_monoSetWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
+{
+  _monoWinX0 = x0; _monoWinY0 = y0;
+  _monoWinX1 = x1; _monoWinY1 = y1;
+  _monoCursorX = x0; _monoCursorY = y0;
+}
+
+void TFT_eSPI::_monoFlush(int16_t x0, int16_t x1, int8_t page0, int8_t page1)
+{
+  if (x1 < x0 || page1 < page0) return;
+  SPI_BUSY_CHECK;
+#if defined (SSD1306_DRIVER)
+  DC_C; tft_Write_8(0x21); tft_Write_8(x0 + SSD1306_COL_OFFSET); tft_Write_8(x1 + SSD1306_COL_OFFSET);
+  tft_Write_8(0x22); tft_Write_8(page0); tft_Write_8(page1);
+  DC_D;
+  for (int8_t page = page0; page <= page1; ++page) {
+    const uint8_t *row = _monoBuffer + page * _init_width;
+    for (int16_t x = x0; x <= x1; ++x) {
+      tft_Write_8(row[x]);
+    }
+  }
+#else
+  for (int8_t page = page0; page <= page1; ++page) {
+    int16_t column = x0 + SH1106_COL_OFFSET;
+    DC_C; tft_Write_8(0xB0 | page); tft_Write_8(column & 0x0F); tft_Write_8(0x10 | (column >> 4));
+    DC_D;
+    const uint8_t *row = _monoBuffer + page * _init_width;
+    for (int16_t x = x0; x <= x1; ++x) {
+      tft_Write_8(row[x]);
+    }
+  }
+#endif
+}
+
+void TFT_eSPI::_monoPushBlock(uint16_t color, uint32_t len)
+{
+  int16_t minX = _init_width, maxX = -1;
+  int8_t minPage = (_init_height + 7) >> 3, maxPage = -1;
+  bool set = color != 0;
+  while (len-- && _monoCursorY <= _monoWinY1) {
+    int16_t px, py;
+    _monoMap(_monoCursorX, _monoCursorY, px, py);
+    if (px >= 0 && py >= 0 && px < _init_width && py < _init_height) {
+      uint8_t &cell = _monoBuffer[(py >> 3) * _init_width + px];
+      uint8_t mask = 1U << (py & 7);
+      uint8_t next = set ? (cell | mask) : (cell & ~mask);
+      if (next != cell) {
+        cell = next;
+        if (px < minX) minX = px;
+        if (px > maxX) maxX = px;
+        if ((py >> 3) < minPage) minPage = py >> 3;
+        if ((py >> 3) > maxPage) maxPage = py >> 3;
+      }
+    }
+    if (++_monoCursorX > _monoWinX1) { _monoCursorX = _monoWinX0; ++_monoCursorY; }
+  }
+  _monoFlush(minX, maxX, minPage, maxPage);
+}
+
+void TFT_eSPI::_monoPushPixels(const void *data, uint32_t len)
+{
+  const uint16_t *pixels = static_cast<const uint16_t *>(data);
+  int16_t minX = _init_width, maxX = -1;
+  int8_t minPage = (_init_height + 7) >> 3, maxPage = -1;
+  while (len-- && _monoCursorY <= _monoWinY1) {
+    uint16_t color = *pixels++;
+    if (_swapBytes) color = (color << 8) | (color >> 8);
+    int16_t px, py;
+    _monoMap(_monoCursorX, _monoCursorY, px, py);
+    if (px >= 0 && py >= 0 && px < _init_width && py < _init_height) {
+      uint8_t &cell = _monoBuffer[(py >> 3) * _init_width + px];
+      uint8_t mask = 1U << (py & 7);
+      uint8_t next = color ? (cell | mask) : (cell & ~mask);
+      if (next != cell) {
+        cell = next;
+        if (px < minX) minX = px;
+        if (px > maxX) maxX = px;
+        if ((py >> 3) < minPage) minPage = py >> 3;
+        if ((py >> 3) > maxPage) maxPage = py >> 3;
+      }
+    }
+    if (++_monoCursorX > _monoWinX1) { _monoCursorX = _monoWinX0; ++_monoCursorY; }
+  }
+  _monoFlush(minX, maxX, minPage, maxPage);
+}
+#endif
+
 /***************************************************************************************
 ** Function name:           setViewport
 ** Description:             Set the clipping region for the TFT screen
@@ -733,11 +831,26 @@ void TFT_eSPI::init(uint8_t tc)
 #elif defined (ILI9488_DRIVER)
     #include "TFT_Drivers/ILI9488_Init.h"
 
+#elif defined (HX8347C_DRIVER)
+    #include "TFT_Drivers/HX8347C_Init.h"
+
+#elif defined (HX8347D_DRIVER)
+    #include "TFT_Drivers/HX8347D_Init.h"
+
+#elif defined (HX8352C_DRIVER)
+    #include "TFT_Drivers/HX8352C_Init.h"
+
+#elif defined (HX8357A_DRIVER)
+    #include "TFT_Drivers/HX8357A_Init.h"
+
 #elif defined (HX8357D_DRIVER)
     #include "TFT_Drivers/HX8357D_Init.h"
 
 #elif defined (ST7789_DRIVER)
     #include "TFT_Drivers/ST7789_Init.h"
+
+#elif defined (SEPS525_DRIVER)
+    #include "TFT_Drivers/SEPS525_Init.h"
 
 #elif defined (R61581_DRIVER)
     #include "TFT_Drivers/R61581_Init.h"
@@ -750,6 +863,15 @@ void TFT_eSPI::init(uint8_t tc)
 
 #elif defined (SSD1351_DRIVER)
     #include "TFT_Drivers/SSD1351_Init.h"
+
+#elif defined (SSD1357_DRIVER)
+    #include "TFT_Drivers/SSD1357_Init.h"
+
+#elif defined (SSD1306_DRIVER)
+    #include "TFT_Drivers/SSD1306_Init.h"
+
+#elif defined (SH1106_DRIVER)
+    #include "TFT_Drivers/SH1106_Init.h"
 
 #elif defined (SSD1331_DRIVER)
     #include "TFT_Drivers/SSD1331_Init.h"
@@ -766,8 +888,26 @@ void TFT_eSPI::init(uint8_t tc)
 #elif defined (GC9D01_DRIVER)
      #include "TFT_Drivers/GC9D01_Init.h"
 
+#elif defined (ARDUINO_GFX_DCS_DRIVER)
+     #include "TFT_Drivers/ArduinoGFX_DCS_Init.h"
+
 #elif defined (ILI9225_DRIVER)
      #include "TFT_Drivers/ILI9225_Init.h"
+
+#elif defined (ILI9331_DRIVER)
+     #include "TFT_Drivers/ILI9331_Init.h"
+
+#elif defined (JBT6K71_DRIVER)
+     #include "TFT_Drivers/JBT6K71_Init.h"
+
+#elif defined (NT35510_DRIVER)
+     #include "TFT_Drivers/NT35510_Init.h"
+
+#elif defined (OTM8009A_DRIVER)
+     #include "TFT_Drivers/OTM8009A_Init.h"
+
+#elif defined (SSD1283A_DRIVER)
+     #include "TFT_Drivers/SSD1283A_Init.h"
 
 #elif defined (RM68120_DRIVER)
      #include "TFT_Drivers/RM68120_Init.h"
@@ -843,11 +983,26 @@ void TFT_eSPI::setRotation(uint8_t m)
 #elif defined (ILI9488_DRIVER)
     #include "TFT_Drivers/ILI9488_Rotation.h"
 
+#elif defined (HX8347C_DRIVER)
+    #include "TFT_Drivers/HX8347C_Rotation.h"
+
+#elif defined (HX8347D_DRIVER)
+    #include "TFT_Drivers/HX8347D_Rotation.h"
+
+#elif defined (HX8352C_DRIVER)
+    #include "TFT_Drivers/HX8352C_Rotation.h"
+
+#elif defined (HX8357A_DRIVER)
+    #include "TFT_Drivers/HX8357A_Rotation.h"
+
 #elif defined (HX8357D_DRIVER)
     #include "TFT_Drivers/HX8357D_Rotation.h"
 
 #elif defined (ST7789_DRIVER)
     #include "TFT_Drivers/ST7789_Rotation.h"
+
+#elif defined (SEPS525_DRIVER)
+    #include "TFT_Drivers/SEPS525_Rotation.h"
 
 #elif defined (R61581_DRIVER)
     #include "TFT_Drivers/R61581_Rotation.h"
@@ -860,6 +1015,15 @@ void TFT_eSPI::setRotation(uint8_t m)
 
 #elif defined (SSD1351_DRIVER)
     #include "TFT_Drivers/SSD1351_Rotation.h"
+
+#elif defined (SSD1357_DRIVER)
+    #include "TFT_Drivers/SSD1357_Rotation.h"
+
+#elif defined (SSD1306_DRIVER)
+    #include "TFT_Drivers/SSD1306_Rotation.h"
+
+#elif defined (SH1106_DRIVER)
+    #include "TFT_Drivers/SH1106_Rotation.h"
 
 #elif defined (SSD1331_DRIVER)
     #include "TFT_Drivers/SSD1331_Rotation.h"
@@ -876,8 +1040,26 @@ void TFT_eSPI::setRotation(uint8_t m)
 #elif defined (GC9D01_DRIVER)
      #include "TFT_Drivers/GC9D01_Rotation.h"
 
+#elif defined (ARDUINO_GFX_DCS_DRIVER)
+     #include "TFT_Drivers/ArduinoGFX_DCS_Rotation.h"
+
 #elif defined (ILI9225_DRIVER)
      #include "TFT_Drivers/ILI9225_Rotation.h"
+
+#elif defined (ILI9331_DRIVER)
+     #include "TFT_Drivers/ILI9331_Rotation.h"
+
+#elif defined (JBT6K71_DRIVER)
+     #include "TFT_Drivers/JBT6K71_Rotation.h"
+
+#elif defined (NT35510_DRIVER)
+     #include "TFT_Drivers/NT35510_Rotation.h"
+
+#elif defined (OTM8009A_DRIVER)
+     #include "TFT_Drivers/OTM8009A_Rotation.h"
+
+#elif defined (SSD1283A_DRIVER)
+     #include "TFT_Drivers/SSD1283A_Rotation.h"
 
 #elif defined (RM68120_DRIVER)
      #include "TFT_Drivers/RM68120_Rotation.h"
@@ -3381,7 +3563,9 @@ void TFT_eSPI::setWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
   addr_row = 0xFFFF;
   addr_col = 0xFFFF;
 
-#if defined (ILI9225_DRIVER)
+#if defined (TFT_MONO_DRIVER)
+  _monoSetWindow(x0, y0, x1, y1);
+#elif defined (ILI9225_DRIVER)
   if (rotation & 0x01) { transpose(x0, y0); transpose(x1, y1); }
   SPI_BUSY_CHECK;
   DC_C; tft_Write_8(TFT_CASET1);
@@ -3408,23 +3592,119 @@ void TFT_eSPI::setWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
     while (spi_get_hw(SPI_X)->sr & SPI_SSPSR_BSY_BITS) {};
     hw_write_masked(&spi_get_hw(SPI_X)->cr0, (16 - 1) << SPI_SSPCR0_DSS_LSB, SPI_SSPCR0_DSS_BITS);
   #endif
-#elif defined (SSD1351_DRIVER) || defined (SSD1331_DRIVER)
+#elif defined (ILI9331_DRIVER)
+  SPI_BUSY_CHECK;
+  uint16_t mc = (rotation & 1) ? 0x0021 : 0x0020;
+  uint16_t mp = (rotation & 1) ? 0x0020 : 0x0021;
+  uint16_t sc = (rotation & 1) ? 0x0052 : 0x0050;
+  uint16_t ec = (rotation & 1) ? 0x0053 : 0x0051;
+  uint16_t sp = (rotation & 1) ? 0x0050 : 0x0052;
+  uint16_t ep = (rotation & 1) ? 0x0051 : 0x0053;
+  DC_C; tft_Write_16(mc); DC_D; tft_Write_16(x0);
+  DC_C; tft_Write_16(sc); DC_D; tft_Write_16(x0);
+  DC_C; tft_Write_16(ec); DC_D; tft_Write_16(x1);
+  DC_C; tft_Write_16(mp); DC_D; tft_Write_16(y0);
+  DC_C; tft_Write_16(sp); DC_D; tft_Write_16(y0);
+  DC_C; tft_Write_16(ep); DC_D; tft_Write_16(y1);
+  DC_C; tft_Write_16(TFT_RAMWR); DC_D;
+#elif defined (NT35510_DRIVER) || defined (OTM8009A_DRIVER)
+  SPI_BUSY_CHECK;
+  DC_C; tft_Write_16(TFT_CASET + 0); DC_D; tft_Write_16(x0 >> 8);
+  DC_C; tft_Write_16(TFT_CASET + 1); DC_D; tft_Write_16(x0);
+  DC_C; tft_Write_16(TFT_CASET + 2); DC_D; tft_Write_16(x1 >> 8);
+  DC_C; tft_Write_16(TFT_CASET + 3); DC_D; tft_Write_16(x1);
+  DC_C; tft_Write_16(TFT_PASET + 0); DC_D; tft_Write_16(y0 >> 8);
+  DC_C; tft_Write_16(TFT_PASET + 1); DC_D; tft_Write_16(y0);
+  DC_C; tft_Write_16(TFT_PASET + 2); DC_D; tft_Write_16(y1 >> 8);
+  DC_C; tft_Write_16(TFT_PASET + 3); DC_D; tft_Write_16(y1);
+  DC_C; tft_Write_16(TFT_RAMWR); DC_D;
+#elif defined (JBT6K71_DRIVER)
+  SPI_BUSY_CHECK;
+  uint16_t xStartCmd = (rotation & 1) ? 0x0408 : 0x0406;
+  uint16_t xEndCmd   = (rotation & 1) ? 0x0409 : 0x0407;
+  uint16_t xPosCmd   = (rotation & 1) ? 0x0201 : 0x0200;
+  uint16_t yStartCmd = (rotation & 1) ? 0x0406 : 0x0408;
+  uint16_t yEndCmd   = (rotation & 1) ? 0x0407 : 0x0409;
+  uint16_t yPosCmd   = (rotation & 1) ? 0x0200 : 0x0201;
+  int32_t xs = (rotation == 1) ? (320 - x1 - 1) : x0;
+  int32_t xe = (rotation == 1) ? (320 - x0 - 1) : x1;
+  int32_t xp = (rotation == 1) ? xe : xs;
+  int32_t ys = (rotation == 0) ? (320 - y1 - 1) : y0;
+  int32_t ye = (rotation == 0) ? (320 - y0 - 1) : y1;
+  int32_t yp = (rotation == 0) ? ye : ys;
+  DC_C; tft_Write_16(xStartCmd); DC_D; tft_Write_16(xs);
+  DC_C; tft_Write_16(xEndCmd);   DC_D; tft_Write_16(xe);
+  DC_C; tft_Write_16(xPosCmd);   DC_D; tft_Write_16(xp);
+  DC_C; tft_Write_16(yStartCmd); DC_D; tft_Write_16(ys);
+  DC_C; tft_Write_16(yEndCmd);   DC_D; tft_Write_16(ye);
+  DC_C; tft_Write_16(yPosCmd);   DC_D; tft_Write_16(yp);
+  DC_C; tft_Write_16(TFT_RAMWR); DC_D;
+#elif defined (SSD1283A_DRIVER)
+  SPI_BUSY_CHECK;
+  uint8_t v1, v2, v3, h1, h2, h3;
+  switch (rotation & 3) {
+    case 1: v1=x1+2; v2=x0+2; v3=v2; h1=129-y0+2; h2=130-y1-1+2; h3=h1; break;
+    case 2: v1=129-y0+2; v2=130-y1-1+2; v3=v1; h1=129-x0+2; h2=130-x1-1+2; h3=h1; break;
+    case 3: v1=129-x0+2; v2=130-x1-1+2; v3=v1; h1=y1+2; h2=y0+2; h3=h2; break;
+    default: v1=y1+2; v2=y0+2; v3=v2; h1=x1+2; h2=x0+2; h3=h2; break;
+  }
+  DC_C; tft_Write_8(0x44); DC_D; tft_Write_8(h1); tft_Write_8(h2);
+  DC_C; tft_Write_8(0x45); DC_D; tft_Write_8(v1); tft_Write_8(v2);
+  DC_C; tft_Write_8(0x21); DC_D; tft_Write_8(v3); tft_Write_8(h3);
+  DC_C; tft_Write_8(TFT_RAMWR); DC_D;
+#elif defined (HX8347C_DRIVER) || defined (HX8347D_DRIVER) || defined (HX8352C_DRIVER) || defined (HX8357A_DRIVER)
+  SPI_BUSY_CHECK;
+  #if defined (HX8357A_DRIVER)
+    DC_C; tft_Write_8(0x80); DC_D; tft_Write_8(x0 >> 8);
+    DC_C; tft_Write_8(0x81); DC_D; tft_Write_8(x0);
+    DC_C; tft_Write_8(0x82); DC_D; tft_Write_8(y0 >> 8);
+    DC_C; tft_Write_8(0x83); DC_D; tft_Write_8(y0);
+  #endif
+  DC_C; tft_Write_8(0x02); DC_D; tft_Write_8(x0 >> 8);
+  DC_C; tft_Write_8(0x03); DC_D; tft_Write_8(x0);
+  DC_C; tft_Write_8(0x04); DC_D; tft_Write_8(x1 >> 8);
+  DC_C; tft_Write_8(0x05); DC_D; tft_Write_8(x1);
+  DC_C; tft_Write_8(0x06); DC_D; tft_Write_8(y0 >> 8);
+  DC_C; tft_Write_8(0x07); DC_D; tft_Write_8(y0);
+  DC_C; tft_Write_8(0x08); DC_D; tft_Write_8(y1 >> 8);
+  DC_C; tft_Write_8(0x09); DC_D; tft_Write_8(y1);
+  DC_C; tft_Write_8(TFT_RAMWR); DC_D;
+#elif defined (SEPS525_DRIVER)
+  SPI_BUSY_CHECK;
+  uint8_t xStartCmd = (rotation & 1) ? 0x19 : 0x17;
+  uint8_t xAddrCmd  = (rotation & 1) ? 0x21 : 0x20;
+  uint8_t xEndCmd   = (rotation & 1) ? 0x1A : 0x18;
+  uint8_t yStartCmd = (rotation & 1) ? 0x17 : 0x19;
+  uint8_t yAddrCmd  = (rotation & 1) ? 0x20 : 0x21;
+  uint8_t yEndCmd   = (rotation & 1) ? 0x18 : 0x1A;
+  DC_C; tft_Write_8(xStartCmd); DC_D; tft_Write_16(x0);
+  DC_C; tft_Write_8(xAddrCmd);  DC_D; tft_Write_16(x0);
+  DC_C; tft_Write_8(xEndCmd);   DC_D; tft_Write_16(x1);
+  DC_C; tft_Write_8(yStartCmd); DC_D; tft_Write_16(y0);
+  DC_C; tft_Write_8(yAddrCmd);  DC_D; tft_Write_16(y0);
+  DC_C; tft_Write_8(yEndCmd);   DC_D; tft_Write_16(y1);
+  DC_C; tft_Write_8(TFT_RAMWR); DC_D;
+#elif defined (SSD1351_DRIVER) || defined (SSD1357_DRIVER) || defined (SSD1331_DRIVER)
+  #if defined (SSD1357_DRIVER)
+    x0 += colstart; x1 += colstart;
+    y0 += rowstart; y1 += rowstart;
+  #endif
   if (rotation & 1) {
     transpose(x0, y0);
     transpose(x1, y1);
   }
   SPI_BUSY_CHECK;
   DC_C; tft_Write_8(TFT_CASET);
-  #if defined (SSD1351_DRIVER)
+  #if defined (SSD1351_DRIVER) || defined (SSD1357_DRIVER)
     DC_D;
   #endif
   tft_Write_16(x1 | (x0 << 8));
   DC_C; tft_Write_8(TFT_PASET);
-  #if defined (SSD1351_DRIVER)
+  #if defined (SSD1351_DRIVER) || defined (SSD1357_DRIVER)
     DC_D;
   #endif
   tft_Write_16(y1 | (y0 << 8));
-  #if defined (SSD1351_DRIVER)
+  #if defined (SSD1351_DRIVER) || defined (SSD1357_DRIVER)
     DC_C; tft_Write_8(TFT_RAMWR);
   #endif
   DC_D;
@@ -3627,7 +3907,10 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
 
   begin_tft_write();
 
-#if defined (ILI9225_DRIVER)
+#if defined (TFT_MONO_DRIVER)
+  _monoSetWindow(x, y, x, y);
+  _monoPushBlock(color, 1);
+#elif defined (ILI9225_DRIVER)
   if (rotation & 0x01) { transpose(x, y); }
   SPI_BUSY_CHECK;
 
@@ -3659,8 +3942,61 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
     DC_D; tft_Write_16N(color);
   #endif
 
+#elif defined (ILI9331_DRIVER) || defined (JBT6K71_DRIVER) || defined (NT35510_DRIVER) || \
+      defined (OTM8009A_DRIVER) || defined (SSD1283A_DRIVER)
+  setWindow(x, y, x, y);
+  #if defined(TFT_PARALLEL_8_BIT) || defined(TFT_PARALLEL_16_BIT) || !defined(ESP32)
+    DC_D; tft_Write_16(color);
+  #else
+    DC_D; tft_Write_16N(color);
+  #endif
+
+#elif defined (HX8347C_DRIVER) || defined (HX8347D_DRIVER) || defined (HX8352C_DRIVER) || defined (HX8357A_DRIVER)
+  SPI_BUSY_CHECK;
+  #if defined (HX8357A_DRIVER)
+    DC_C; tft_Write_8(0x80); DC_D; tft_Write_8(x >> 8);
+    DC_C; tft_Write_8(0x81); DC_D; tft_Write_8(x);
+    DC_C; tft_Write_8(0x82); DC_D; tft_Write_8(y >> 8);
+    DC_C; tft_Write_8(0x83); DC_D; tft_Write_8(y);
+  #endif
+  DC_C; tft_Write_8(0x02); DC_D; tft_Write_8(x >> 8);
+  DC_C; tft_Write_8(0x03); DC_D; tft_Write_8(x);
+  DC_C; tft_Write_8(0x04); DC_D; tft_Write_8(x >> 8);
+  DC_C; tft_Write_8(0x05); DC_D; tft_Write_8(x);
+  DC_C; tft_Write_8(0x06); DC_D; tft_Write_8(y >> 8);
+  DC_C; tft_Write_8(0x07); DC_D; tft_Write_8(y);
+  DC_C; tft_Write_8(0x08); DC_D; tft_Write_8(y >> 8);
+  DC_C; tft_Write_8(0x09); DC_D; tft_Write_8(y);
+  DC_C; tft_Write_8(TFT_RAMWR);
+  #if defined(TFT_PARALLEL_8_BIT) || defined(TFT_PARALLEL_16_BIT) || !defined(ESP32)
+    DC_D; tft_Write_16(color);
+  #else
+    DC_D; tft_Write_16N(color);
+  #endif
+
+#elif defined (SEPS525_DRIVER)
+  SPI_BUSY_CHECK;
+  uint8_t xStartCmd = (rotation & 1) ? 0x19 : 0x17;
+  uint8_t xAddrCmd  = (rotation & 1) ? 0x21 : 0x20;
+  uint8_t xEndCmd   = (rotation & 1) ? 0x1A : 0x18;
+  uint8_t yStartCmd = (rotation & 1) ? 0x17 : 0x19;
+  uint8_t yAddrCmd  = (rotation & 1) ? 0x20 : 0x21;
+  uint8_t yEndCmd   = (rotation & 1) ? 0x18 : 0x1A;
+  DC_C; tft_Write_8(xStartCmd); DC_D; tft_Write_16(x);
+  DC_C; tft_Write_8(xAddrCmd);  DC_D; tft_Write_16(x);
+  DC_C; tft_Write_8(xEndCmd);   DC_D; tft_Write_16(x);
+  DC_C; tft_Write_8(yStartCmd); DC_D; tft_Write_16(y);
+  DC_C; tft_Write_8(yAddrCmd);  DC_D; tft_Write_16(y);
+  DC_C; tft_Write_8(yEndCmd);   DC_D; tft_Write_16(y);
+  DC_C; tft_Write_8(TFT_RAMWR);
+  #if defined(TFT_PARALLEL_8_BIT) || defined(TFT_PARALLEL_16_BIT) || !defined(ESP32)
+    DC_D; tft_Write_16(color);
+  #else
+    DC_D; tft_Write_16N(color);
+  #endif
+
 // Temporary solution is to include the RP2040 optimised code here
-#elif (defined (ARDUINO_ARCH_RP2040) || defined (ARDUINO_ARCH_MBED)) && !defined (SSD1351_DRIVER) && !defined (SSD1331_DRIVER)
+#elif (defined (ARDUINO_ARCH_RP2040) || defined (ARDUINO_ARCH_MBED)) && !defined (SSD1351_DRIVER) && !defined (SSD1357_DRIVER) && !defined (SSD1331_DRIVER)
 
   #if defined (SSD1963_DRIVER)
     if ((rotation & 0x1) == 0) { transpose(x, y); }
@@ -3766,12 +4102,16 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
 
     SPI_BUSY_CHECK;
 
-  #if defined (SSD1351_DRIVER) || defined (SSD1331_DRIVER)
+  #if defined (SSD1351_DRIVER) || defined (SSD1357_DRIVER) || defined (SSD1331_DRIVER)
+    #if defined (SSD1357_DRIVER)
+      x += colstart;
+      y += rowstart;
+    #endif
     if (rotation & 0x1) { transpose(x, y); }
     // No need to send x if it has not changed (speeds things up)
     if (addr_col != x) {
       DC_C; tft_Write_8(TFT_CASET);
-      #if defined (SSD1351_DRIVER)
+      #if defined (SSD1351_DRIVER) || defined (SSD1357_DRIVER)
         DC_D;
       #endif
       tft_Write_16(x | (x << 8));
@@ -3781,7 +4121,7 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
     // No need to send y if it has not changed (speeds things up)
     if (addr_row != y) {
       DC_C; tft_Write_8(TFT_PASET);
-      #if defined (SSD1351_DRIVER)
+      #if defined (SSD1351_DRIVER) || defined (SSD1357_DRIVER)
         DC_D;
       #endif
       tft_Write_16(y | (y << 8));
@@ -4873,9 +5213,35 @@ uint32_t TFT_eSPI::color24to16(uint32_t color888)
 void TFT_eSPI::invertDisplay(bool i)
 {
   begin_tft_write();
+#if defined (HX8347C_DRIVER) || defined (HX8352C_DRIVER)
+  uint8_t mode;
+  uint8_t scan;
+  switch (rotation & 3) {
+    case 0: mode = i ? 0x17 : 0x07; scan = 0x40; break;
+    case 1: mode = i ? 0x13 : 0x03; scan = 0x60; break;
+    case 2: mode = i ? 0x13 : 0x03; scan = 0x00; break;
+    default: mode = i ? 0x17 : 0x07; scan = 0x20; break;
+  }
+  writecommand(0x36); writedata(mode);
+  writecommand(0x16); writedata(scan);
+#elif defined (HX8347D_DRIVER) || defined (HX8357A_DRIVER)
+  writecommand(0x01);
+  writedata(i ? 0x02 : 0x00);
+#elif defined (ILI9331_DRIVER)
+  DC_C; tft_Write_16(0x0061);
+  DC_D; tft_Write_16(i ? 0x0001 : 0x0000);
+#elif defined (JBT6K71_DRIVER)
+  DC_C; tft_Write_16(0x0007);
+  DC_D; tft_Write_16(i ? 0x4004 : 0x4000);
+#elif defined (NT35510_DRIVER) || defined (OTM8009A_DRIVER) || defined (SSD1283A_DRIVER)
+  // The reference drivers do not implement display inversion for these controllers.
+#elif defined (SEPS525_DRIVER)
+  // The SEPS525 has no display inversion command.
+#else
   // Send the command twice as otherwise it does not always work!
   writecommand(i ? TFT_INVON : TFT_INVOFF);
   writecommand(i ? TFT_INVON : TFT_INVOFF);
+#endif
   end_tft_write();
 }
 

@@ -171,6 +171,10 @@ void TFT_eSPI::gpioMode(uint8_t gpio, uint8_t mode)
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
   uint8_t colorBin[] = { (uint8_t) (color >> 8), (uint8_t) color };
   if(len) spi.writePattern(&colorBin[0], 2, 1); len--;
   while(len--) {WR_L; WR_H;}
@@ -182,6 +186,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
   uint8_t *data = (uint8_t*)data_in;
 
   if(_swapBytes) {
@@ -250,6 +258,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
 //*/
 //*
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
 
   volatile uint32_t* spi_w = _spi_w;
   uint32_t color32 = (color<<8 | color >>8)<<16 | (color<<8 | color >>8);
@@ -386,6 +398,10 @@ void TFT_eSPI::pushSwapBytePixels(const void* data_in, uint32_t len){
 ** Description:             Write a sequence of pixels
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
 
   if(_swapBytes) {
     pushSwapBytePixels(data_in, len);
@@ -449,6 +465,10 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
   // Split out the colours
   uint32_t r = (color & 0xF800)>>8;
   uint32_t g = (color & 0x07E0)<<5;
@@ -525,6 +545,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 ** Description:             Write a sequence of pixels
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
 
   uint16_t *data = (uint16_t*)data_in;
   // ILI9488 write macro is not endianess dependant, hence !_swapBytes
@@ -552,6 +576,10 @@ void TFT_eSPI::pushSwapBytePixels(const void* data_in, uint32_t len){
 ** Description:             Write a block of pixels of the same colour
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
   if ( (color >> 8) == (color & 0x00FF) )
   { if (!len) return;
     tft_Write_16(color);
@@ -583,6 +611,10 @@ void TFT_eSPI::pushSwapBytePixels(const void* data_in, uint32_t len){
 ** Description:             Write a sequence of pixels
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
 
   uint16_t *data = (uint16_t*)data_in;
   if(_swapBytes) { while ( len-- ) {tft_Write_16(*data); data++; } }

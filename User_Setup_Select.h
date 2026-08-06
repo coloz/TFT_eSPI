@@ -246,6 +246,18 @@
 #elif defined (ILI9488_DRIVER)
      #include <TFT_Drivers/ILI9488_Defines.h>
      #define  TFT_DRIVER 0x9488
+#elif defined (HX8347C_DRIVER)
+     #include "TFT_Drivers/HX8347C_Defines.h"
+     #define  TFT_DRIVER 0x834C
+#elif defined (HX8347D_DRIVER)
+     #include "TFT_Drivers/HX8347D_Defines.h"
+     #define  TFT_DRIVER 0x834D
+#elif defined (HX8352C_DRIVER)
+     #include "TFT_Drivers/HX8352C_Defines.h"
+     #define  TFT_DRIVER 0x8352
+#elif defined (HX8357A_DRIVER)
+     #include "TFT_Drivers/HX8357A_Defines.h"
+     #define  TFT_DRIVER 0x835A
 #elif defined (HX8357D_DRIVER)
      #include "TFT_Drivers/HX8357D_Defines.h"
      #define  TFT_DRIVER 0x8357
@@ -255,6 +267,9 @@
 #elif defined (ST7789_DRIVER)
      #include "TFT_Drivers/ST7789_Defines.h"
      #define  TFT_DRIVER 0x7789
+#elif defined (SEPS525_DRIVER)
+     #include "TFT_Drivers/SEPS525_Defines.h"
+     #define  TFT_DRIVER 0x0525
 #elif defined (R61581_DRIVER)
      #include "TFT_Drivers/R61581_Defines.h"
      #define  TFT_DRIVER 0x6158
@@ -267,6 +282,15 @@
 #elif defined (SSD1351_DRIVER)
      #include "TFT_Drivers/SSD1351_Defines.h"
      #define  TFT_DRIVER 0x1351
+#elif defined (SSD1357_DRIVER)
+     #include "TFT_Drivers/SSD1357_Defines.h"
+     #define  TFT_DRIVER 0x1357
+#elif defined (SSD1306_DRIVER)
+     #include "TFT_Drivers/SSD1306_Defines.h"
+     #define  TFT_DRIVER 0x1306
+#elif defined (SH1106_DRIVER)
+     #include "TFT_Drivers/SH1106_Defines.h"
+     #define  TFT_DRIVER 0x1106
 #elif defined (SSD1331_DRIVER)
      #include "TFT_Drivers/SSD1331_Defines.h"
      #define  TFT_DRIVER 0x1331
@@ -291,9 +315,32 @@
 #elif defined (GC9D01_DRIVER)
      #include "TFT_Drivers/GC9D01_Defines.h"
      #define  TFT_DRIVER 0x9D01
+#elif defined (AXS15231B_DRIVER) || defined (CO5300_DRIVER) || defined (GC9106_DRIVER) || \
+      defined (GC9C01_DRIVER) || defined (HX8369A_DRIVER) || defined (ILI9806_DRIVER) || \
+      defined (JD9613_DRIVER) || defined (NT35310_DRIVER) || defined (NT39125_DRIVER) || \
+      defined (NV3001B_DRIVER) || defined (NV3007_DRIVER) || defined (NV3023_DRIVER) || \
+      defined (NV3041A_DRIVER) || defined (R61529_DRIVER) || defined (RM67162_DRIVER) || \
+      defined (RM690B0_DRIVER) || defined (SH8601_DRIVER) || defined (SPD2010_DRIVER) || \
+      defined (ST77916_DRIVER) || defined (WEA2012_DRIVER)
+     #include "TFT_Drivers/ArduinoGFX_DCS_Select.h"
 #elif defined (ILI9225_DRIVER)
      #include "TFT_Drivers/ILI9225_Defines.h"
      #define  TFT_DRIVER 0x9225
+#elif defined (ILI9331_DRIVER)
+     #include "TFT_Drivers/ILI9331_Defines.h"
+     #define  TFT_DRIVER 0x9331
+#elif defined (JBT6K71_DRIVER)
+     #include "TFT_Drivers/JBT6K71_Defines.h"
+     #define  TFT_DRIVER 0x6B71
+#elif defined (NT35510_DRIVER)
+     #include "TFT_Drivers/NT35510_Defines.h"
+     #define  TFT_DRIVER 0x5510
+#elif defined (OTM8009A_DRIVER)
+     #include "TFT_Drivers/OTM8009A_Defines.h"
+     #define  TFT_DRIVER 0x8009
+#elif defined (SSD1283A_DRIVER)
+     #include "TFT_Drivers/SSD1283A_Defines.h"
+     #define  TFT_DRIVER 0x1283
 #elif defined (RM68120_DRIVER)
      #include "TFT_Drivers/RM68120_Defines.h"
      #define  TFT_DRIVER 0x6812

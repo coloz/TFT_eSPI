@@ -91,29 +91,68 @@ Support for the XPT2046 touch screen controller is built into the library and ca
 
 Displays using the following controllers are supported:
 
+* AXS15231B
+* CO5300
 * GC9A01
+* GC9C01
+* GC9106
 * GC9107
 * GC9D01
+* HX8347C
+* HX8347D
+* HX8352C
+* HX8357A
+* HX8357B (16-bit parallel tested with RP2040)
+* HX8357C (16-bit parallel tested with RP2040)
+* HX8357D
+* HX8369A
 * ILI9163
 * ILI9225
+* ILI9331
 * ILI9341
 * ILI9342
 * ILI9481 (DMA not supported with SPI)
 * ILI9486 (DMA not supported with SPI)
 * ILI9488 (DMA not supported with SPI)
-* HX8357B (16-bit parallel tested with RP2040)
-* HX8357C (16-bit parallel tested with RP2040)
-* HX8357D
+* ILI9806
+* JBT6K71
+* JD9613
+* NT35310
+* NT35510
+* NT39125
+* NV3001B
+* NV3007
+* NV3023
+* NV3041A
+* OTM8009A
+* R61529
 * R61581
+* RM67162
 * RM68120 (support files added but untested)
 * RM68140
+* RM690B0
 * S6D02A1
+* SEPS525
+* SH1106 (1-bit buffered rendering)
+* SH8601
+* SPD2010
+* SSD1283A
+* SSD1306 (1-bit buffered rendering)
 * SSD1331
 * SSD1351
+* SSD1357
 * SSD1963 (this controller only has a parallel interface option)
 * ST7735
 * ST7789
+* ST77916
 * ST7796
+* WEA2012
+
+The added controller command sets and initialization tables are based on
+[Arduino_GFX](https://github.com/moononournation/Arduino_GFX/tree/master/src/display)
+and [displaylib_16bit_PICO](https://github.com/gavinlyonsrepo/displaylib_16bit_PICO).
+Controller support uses TFT_eSPI's existing SPI and parallel bus backends; modules
+wired exclusively for QSPI, RGB or MIPI DSI still require a matching bus backend.
 
 ILI9341 and ST7796 SPI based displays are recommended as starting point for experimenting with this library.
 

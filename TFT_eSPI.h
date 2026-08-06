@@ -911,6 +911,17 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
   int32_t  _width, _height;           // Display w/h as modified by current rotation
   int32_t  addr_row, addr_col;        // Window position - used to minimise window commands
 
+#if defined (TFT_MONO_DRIVER)
+  void     _monoSetWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1);
+  void     _monoPushBlock(uint16_t color, uint32_t len);
+  void     _monoPushPixels(const void *data, uint32_t len);
+  void     _monoFlush(int16_t x0, int16_t x1, int8_t page0, int8_t page1);
+  void     _monoMap(int32_t x, int32_t y, int16_t &px, int16_t &py);
+  uint8_t  _monoBuffer[TFT_WIDTH * ((TFT_HEIGHT + 7) / 8)];
+  int32_t  _monoWinX0, _monoWinY0, _monoWinX1, _monoWinY1;
+  int32_t  _monoCursorX, _monoCursorY;
+#endif
+
   int16_t  _xPivot;   // TFT x pivot point coordinate for rotated Sprites
   int16_t  _yPivot;   // TFT x pivot point coordinate for rotated Sprites
 

@@ -81,6 +81,10 @@ void TFT_eSPI::end_SDA_Read(void)
 ** Description:             Write a block of pixels of the same colour
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
     // Loop unrolling improves speed dramatically graphics test  0.634s => 0.374s
     while (len>31) {
     #if !defined (SSD1963_DRIVER)
@@ -126,6 +130,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
 ** Description:             Write a sequence of pixels
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
 
   uint16_t *data = (uint16_t*)data_in;
 
@@ -266,6 +274,10 @@ uint8_t TFT_eSPI::readByte(void)
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
   if(len) { tft_Write_16(color); len--; }
   while(len--) {WR_L; WR_H;}
 }
@@ -276,6 +288,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
   uint16_t *data = (uint16_t*)data_in;
 
   if (_swapBytes) while ( len-- ) { tft_Write_16S(*data); data++;}
@@ -293,6 +309,10 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 #define BUF_SIZE 240*3
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
   //uint8_t col[BUF_SIZE];
   // Always using swapped bytes is a peculiarity of this function...
   //color = color>>8 | color<<8;
@@ -313,6 +333,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
   uint16_t *data = (uint16_t*)data_in;
 
   if(!_swapBytes) {
@@ -367,6 +391,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
 }
  //*/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
+#if defined (TFT_MONO_DRIVER)
+  _monoPushBlock(color, len);
+  return;
+#endif
     // Loop unrolling improves speed dramatically graphics test  0.634s => 0.374s
     while (len>31) {
     #if !defined (SSD1963_DRIVER)
@@ -413,6 +441,10 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
 ***************************************************************************************/
 void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 {
+#if defined (TFT_MONO_DRIVER)
+  _monoPushPixels(data_in, len);
+  return;
+#endif
   uint16_t *data = (uint16_t*)data_in;
 
   if(_swapBytes) {

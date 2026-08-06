@@ -1,0 +1,31 @@
+// RM690B0 initialization ported from Arduino_GFX (BSD-licensed).
+// Commands are emitted directly so the sequence works with TFT_eSPI SPI and parallel buses.
+{
+  writecommand(0xFE);
+  writedata(0x20);
+  writecommand(0x26);
+  writedata(0x0A);
+  writecommand(0x24);
+  writedata(0x80);
+  writecommand(0x5A);
+  writedata(0x51);
+  writecommand(0x5B);
+  writedata(0x2E);
+  writecommand(0xFE);
+  writedata(0x00);
+  writecommand(0x3A);
+  writedata(0x55);
+  writecommand(0xC2);
+  delay(10);
+  writecommand(0x35);
+  writedata(0x00);
+  writecommand(0x51);
+  writedata(0x00);
+  writecommand(0x11);
+  delay(120);
+  writecommand(0x29);
+  delay(10);
+  writecommand(0x51);
+  writedata(0xD0);
+  writecommand(TFT_INVOFF);
+}
