@@ -1,5 +1,5 @@
         ////////////////////////////////////////////////////
-        // TFT_eSPI driver functions for ESP32 processors //
+        // TFT_eSPI driver functions for ESP32-S3/P4 processors //
         ////////////////////////////////////////////////////
 
 // Temporarily a separate file to TFT_eSPI_ESP32.h until board package low level API stabilises
@@ -15,7 +15,7 @@
 #include "driver/spi_master.h"
 #include "hal/gpio_ll.h"
 
-#if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32)
+#if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4) && !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32)
   #define CONFIG_IDF_TARGET_ESP32
 #endif
 
@@ -23,15 +23,15 @@
   #define VSPI FSPI
 #endif
 
-// Fix IDF problems with ESP32S3
+// Fix IDF naming differences on ESP32-S3/P4
 // Note illogical enumerations: FSPI_HOST=SPI2_HOST=1   HSPI_HOST=SPI3_HOST=2
-#if CONFIG_IDF_TARGET_ESP32S3
-  // Fix ESP32C3 IDF bug for missing definition (FSPI only tested at the moment)
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+  // Supply the legacy register helpers used by this optimised driver when absent.
   #ifndef REG_SPI_BASE //                      HSPI                 FSPI/VSPI
     #define REG_SPI_BASE(i) (((i)>1) ? (DR_REG_SPI3_BASE) : (DR_REG_SPI2_BASE))
   #endif
 
-  // Fix ESP32S3 IDF bug for name change
+  // Newer targets renamed the MOSI data-length register.
   #ifndef SPI_MOSI_DLEN_REG
     #define SPI_MOSI_DLEN_REG(x) SPI_MS_DLEN_REG(x)
   #endif
@@ -54,12 +54,10 @@ FSPI = 1, uses SPI2
 HSPI = 2, uses SPI3
 VSPI not defined so have made VSPI = HSPI
 
-For ESP32 C3, C5, C6, H2, P4, S2, S3:
-(C3 only SPI2 port is available, SPI0 & SPI1 are dedicated to internal flash memory)
-Confusingly in ESP-IDF enumerations are:
-SPI1_HOST = 0,  ///< actually SPI0
-SPI2_HOST = 1,  ///< actually SPI1
-SPI3_HOST = 2,  ///< actually SPI2
+For ESP32 C3, C5, C6, H2, P4, S2, S3, Arduino numbers FSPI/HSPI as
+0/1 while ESP-IDF numbers SPI2_HOST/SPI3_HOST as 1/2. The direct register
+macros use the hardware indices 2/3, so SPI_PORT deliberately differs from
+the value passed to the SPIClass constructor.
 */
 
 // ESP32 specific SPI port selection
@@ -78,8 +76,22 @@ SPI3_HOST = 2,  ///< actually SPI2
     #define SPI_PORT 2 //FSPI(ESP32 S2)
   #elif CONFIG_IDF_TARGET_ESP32S3
     #define SPI_PORT 2
+  #elif CONFIG_IDF_TARGET_ESP32P4
+    #define SPI_PORT 2
   #endif
 #endif
+
+// ESP32-P4 exposes both low and high GPIO output registers as unions. ESP32-S3
+// exposes the low bank as a scalar and the high bank as a union.
+#if CONFIG_IDF_TARGET_ESP32P4
+  #define TFT_GPIO_OUT_CLR_LOW  GPIO.out_w1tc.val
+  #define TFT_GPIO_OUT_SET_LOW  GPIO.out_w1ts.val
+#else
+  #define TFT_GPIO_OUT_CLR_LOW  GPIO.out_w1tc
+  #define TFT_GPIO_OUT_SET_LOW  GPIO.out_w1ts
+#endif
+#define TFT_GPIO_OUT_CLR_HIGH GPIO.out1_w1tc.val
+#define TFT_GPIO_OUT_SET_HIGH GPIO.out1_w1ts.val
 
 #ifdef RPI_DISPLAY_TYPE
   #define CMD_BITS (16-1)
@@ -160,13 +172,13 @@ SPI3_HOST = 2,  ///< actually SPI2
   #define DC_D // No macro allocated so it generates no code
 #else
   #if defined (TFT_PARALLEL_8_BIT)
-    // TFT_DC, by design, must be in range 0-31 for single register parallel write
+    // TFT_DC can use either GPIO output bank.
     #if (TFT_DC >= 0) &&  (TFT_DC < 32)
-      #define DC_C GPIO.out_w1tc = (1 << TFT_DC)
-      #define DC_D GPIO.out_w1ts = (1 << TFT_DC)
+      #define DC_C TFT_GPIO_OUT_CLR_LOW = (1 << TFT_DC)
+      #define DC_D TFT_GPIO_OUT_SET_LOW = (1 << TFT_DC)
     #elif (TFT_DC >= 32)
-      #define DC_C GPIO.out1_w1tc.val = (1 << (TFT_DC- 32))
-      #define DC_D GPIO.out1_w1ts.val = (1 << (TFT_DC- 32))
+      #define DC_C TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_DC- 32))
+      #define DC_D TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_DC- 32))
     #else
       #define DC_C
       #define DC_D
@@ -174,31 +186,31 @@ SPI3_HOST = 2,  ///< actually SPI2
   #else
     #if (TFT_DC >= 32)
       #ifdef RPI_DISPLAY_TYPE  // RPi displays need a slower DC change
-        #define DC_C GPIO.out1_w1ts.val = (1 << (TFT_DC - 32)); \
-                     GPIO.out1_w1tc.val = (1 << (TFT_DC - 32))
-        #define DC_D GPIO.out1_w1tc.val = (1 << (TFT_DC - 32)); \
-                     GPIO.out1_w1ts.val = (1 << (TFT_DC - 32))
+        #define DC_C TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_DC - 32)); \
+                     TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_DC - 32))
+        #define DC_D TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_DC - 32)); \
+                     TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_DC - 32))
       #else
-        #define DC_C GPIO.out1_w1tc.val = (1 << (TFT_DC - 32))//;GPIO.out1_w1tc.val = (1 << (TFT_DC - 32))
-        #define DC_D GPIO.out1_w1ts.val = (1 << (TFT_DC - 32))//;GPIO.out1_w1ts.val = (1 << (TFT_DC - 32))
+        #define DC_C TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_DC - 32))
+        #define DC_D TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_DC - 32))
       #endif
     #elif (TFT_DC >= 0)
       #if defined (RPI_DISPLAY_TYPE)
         #if defined (ILI9486_DRIVER)
           // RPi ILI9486 display needs a slower DC change
-          #define DC_C GPIO.out_w1tc = (1 << TFT_DC); \
-                       GPIO.out_w1tc = (1 << TFT_DC)
-          #define DC_D GPIO.out_w1tc = (1 << TFT_DC); \
-                       GPIO.out_w1ts = (1 << TFT_DC)
+          #define DC_C TFT_GPIO_OUT_CLR_LOW = (1 << TFT_DC); \
+                       TFT_GPIO_OUT_CLR_LOW = (1 << TFT_DC)
+          #define DC_D TFT_GPIO_OUT_CLR_LOW = (1 << TFT_DC); \
+                       TFT_GPIO_OUT_SET_LOW = (1 << TFT_DC)
         #else
           // Other RPi displays need a slower C->D change
-          #define DC_C GPIO.out_w1tc = (1 << TFT_DC)
-          #define DC_D GPIO.out_w1tc = (1 << TFT_DC); \
-                       GPIO.out_w1ts = (1 << TFT_DC)
+          #define DC_C TFT_GPIO_OUT_CLR_LOW = (1 << TFT_DC)
+          #define DC_D TFT_GPIO_OUT_CLR_LOW = (1 << TFT_DC); \
+                       TFT_GPIO_OUT_SET_LOW = (1 << TFT_DC)
         #endif
       #else
-        #define DC_C GPIO.out_w1tc = (1 << TFT_DC)//;GPIO.out_w1tc = (1 << TFT_DC)
-        #define DC_D GPIO.out_w1ts = (1 << TFT_DC)//;GPIO.out_w1ts = (1 << TFT_DC)
+        #define DC_C TFT_GPIO_OUT_CLR_LOW = (1 << TFT_DC)
+        #define DC_D TFT_GPIO_OUT_SET_LOW = (1 << TFT_DC)
       #endif
     #else
       #define DC_C
@@ -217,11 +229,11 @@ SPI3_HOST = 2,  ///< actually SPI2
 #else
   #if defined (TFT_PARALLEL_8_BIT)
     #if TFT_CS >= 32
-        #define CS_L GPIO.out1_w1tc.val = (1 << (TFT_CS - 32))
-        #define CS_H GPIO.out1_w1ts.val = (1 << (TFT_CS - 32))
+        #define CS_L TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_CS - 32))
+        #define CS_H TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_CS - 32))
     #elif TFT_CS >= 0
-        #define CS_L GPIO.out_w1tc = (1 << TFT_CS)
-        #define CS_H GPIO.out_w1ts = (1 << TFT_CS)
+        #define CS_L TFT_GPIO_OUT_CLR_LOW = (1 << TFT_CS)
+        #define CS_H TFT_GPIO_OUT_SET_LOW = (1 << TFT_CS)
     #else
       #define CS_L
       #define CS_H
@@ -229,21 +241,21 @@ SPI3_HOST = 2,  ///< actually SPI2
   #else
     #if (TFT_CS >= 32)
       #ifdef RPI_DISPLAY_TYPE  // RPi display needs a slower CS change
-        #define CS_L GPIO.out1_w1ts.val = (1 << (TFT_CS - 32)); \
-                     GPIO.out1_w1tc.val = (1 << (TFT_CS - 32))
-        #define CS_H GPIO.out1_w1tc.val = (1 << (TFT_CS - 32)); \
-                     GPIO.out1_w1ts.val = (1 << (TFT_CS - 32))
+        #define CS_L TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_CS - 32)); \
+                     TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_CS - 32))
+        #define CS_H TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_CS - 32)); \
+                     TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_CS - 32))
       #else
-        #define CS_L GPIO.out1_w1tc.val = (1 << (TFT_CS - 32)); GPIO.out1_w1tc.val = (1 << (TFT_CS - 32))
-        #define CS_H GPIO.out1_w1ts.val = (1 << (TFT_CS - 32))//;GPIO.out1_w1ts.val = (1 << (TFT_CS - 32))
+        #define CS_L TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_CS - 32)); TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_CS - 32))
+        #define CS_H TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_CS - 32))
       #endif
     #elif (TFT_CS >= 0)
       #ifdef RPI_DISPLAY_TYPE  // RPi display needs a slower CS change
-        #define CS_L GPIO.out_w1ts = (1 << TFT_CS); GPIO.out_w1tc = (1 << TFT_CS)
-        #define CS_H GPIO.out_w1tc = (1 << TFT_CS); GPIO.out_w1ts = (1 << TFT_CS)
+        #define CS_L TFT_GPIO_OUT_SET_LOW = (1 << TFT_CS); TFT_GPIO_OUT_CLR_LOW = (1 << TFT_CS)
+        #define CS_H TFT_GPIO_OUT_CLR_LOW = (1 << TFT_CS); TFT_GPIO_OUT_SET_LOW = (1 << TFT_CS)
       #else
-        #define CS_L GPIO.out_w1tc = (1 << TFT_CS); GPIO.out_w1tc = (1 << TFT_CS)
-        #define CS_H GPIO.out_w1ts = (1 << TFT_CS)//;GPIO.out_w1ts = (1 << TFT_CS)
+        #define CS_L TFT_GPIO_OUT_CLR_LOW = (1 << TFT_CS); TFT_GPIO_OUT_CLR_LOW = (1 << TFT_CS)
+        #define CS_H TFT_GPIO_OUT_SET_LOW = (1 << TFT_CS)
       #endif
     #else
       #define CS_L
@@ -258,12 +270,12 @@ SPI3_HOST = 2,  ///< actually SPI2
 #if defined (TFT_WR)
   #if (TFT_WR >= 32)
     // Note: it will be ~1.25x faster if the TFT_WR pin uses a GPIO pin lower than 32
-    #define WR_L GPIO.out1_w1tc.val = (1 << (TFT_WR - 32))
-    #define WR_H GPIO.out1_w1ts.val = (1 << (TFT_WR - 32))
+    #define WR_L TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_WR - 32))
+    #define WR_H TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_WR - 32))
   #elif (TFT_WR >= 0)
     // TFT_WR, for best performance, should be in range 0-31 for single register parallel write
-    #define WR_L GPIO.out_w1tc = (1 << TFT_WR)
-    #define WR_H GPIO.out_w1ts = (1 << TFT_WR)
+    #define WR_L TFT_GPIO_OUT_CLR_LOW = (1 << TFT_WR)
+    #define WR_H TFT_GPIO_OUT_SET_LOW = (1 << TFT_WR)
   #else
     #define WR_L
     #define WR_H
@@ -333,7 +345,7 @@ SPI3_HOST = 2,  ///< actually SPI2
       #define TFT_SCLK 18
     #endif
 
-    #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32S2)
+    #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S2)
       #if (TFT_MISO == -1)
         #undef TFT_MISO
         #define TFT_MISO TFT_MOSI
@@ -351,12 +363,12 @@ SPI3_HOST = 2,  ///< actually SPI2
 
   #if (TFT_D0 >= 32) // If D0 is a high GPIO assume all other data bits are high GPIO
     #define MASK_OFFSET 32
-    #define GPIO_CLR_REG GPIO.out1_w1tc.val
-    #define GPIO_SET_REG GPIO.out1_w1ts.val
+    #define GPIO_CLR_REG TFT_GPIO_OUT_CLR_HIGH
+    #define GPIO_SET_REG TFT_GPIO_OUT_SET_HIGH
   #else
     #define MASK_OFFSET 0
-    #define GPIO_CLR_REG GPIO.out_w1tc
-    #define GPIO_SET_REG GPIO.out_w1ts
+    #define GPIO_CLR_REG TFT_GPIO_OUT_CLR_LOW
+    #define GPIO_SET_REG TFT_GPIO_OUT_SET_LOW
   #endif
 
   // Create a bit set lookup table for data bus - wastes 1kbyte of RAM but speeds things up dramatically
@@ -412,9 +424,9 @@ SPI3_HOST = 2,  ///< actually SPI2
   #if defined (SSD1963_DRIVER)
 
     // Write 18-bit color to TFT
-    #define tft_Write_16(C) GPIO.out_w1tc = GPIO_OUT_CLR_MASK; GPIO.out_w1ts = set_mask((uint8_t) (((C) & 0xF800)>> 8)); WR_H; \
-                            GPIO.out_w1tc = GPIO_OUT_CLR_MASK; GPIO.out_w1ts = set_mask((uint8_t) (((C) & 0x07E0)>> 3)); WR_H; \
-                            GPIO.out_w1tc = GPIO_OUT_CLR_MASK; GPIO.out_w1ts = set_mask((uint8_t) (((C) & 0x001F)<< 3)); WR_H
+    #define tft_Write_16(C) GPIO_CLR_REG = GPIO_OUT_CLR_MASK; GPIO_SET_REG = set_mask((uint8_t) (((C) & 0xF800)>> 8)); WR_H; \
+                            GPIO_CLR_REG = GPIO_OUT_CLR_MASK; GPIO_SET_REG = set_mask((uint8_t) (((C) & 0x07E0)>> 3)); WR_H; \
+                            GPIO_CLR_REG = GPIO_OUT_CLR_MASK; GPIO_SET_REG = set_mask((uint8_t) (((C) & 0x001F)<< 3)); WR_H
 
     // 18-bit color write with swapped bytes
     #define tft_Write_16S(C) Cswap = ((C) >>8 | (C) << 8); tft_Write_16(Cswap)
@@ -423,8 +435,8 @@ SPI3_HOST = 2,  ///< actually SPI2
 
     #ifdef PSEUDO_16_BIT
       // One write strobe for both bytes
-      #define tft_Write_16(C)  GPIO.out_w1tc = GPIO_OUT_CLR_MASK; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 0)); WR_H
-      #define tft_Write_16S(C) GPIO.out_w1tc = GPIO_OUT_CLR_MASK; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 8)); WR_H
+      #define tft_Write_16(C)  GPIO_CLR_REG = GPIO_OUT_CLR_MASK; GPIO_SET_REG = set_mask((uint8_t) ((C) >> 0)); WR_H
+      #define tft_Write_16S(C) GPIO_CLR_REG = GPIO_OUT_CLR_MASK; GPIO_SET_REG = set_mask((uint8_t) ((C) >> 8)); WR_H
     #else
       // Write 16 bits to TFT
       #define tft_Write_16(C) GPIO_CLR_REG = GPIO_OUT_CLR_MASK; GPIO_SET_REG = set_mask((uint8_t) ((C) >> 8)); WR_H; \
@@ -458,12 +470,12 @@ SPI3_HOST = 2,  ///< actually SPI2
    // Read pin
   #ifdef TFT_RD
     #if (TFT_RD >= 32)
-      #define RD_L GPIO.out1_w1tc.val = (1 << (TFT_RD - 32))
-      #define RD_H GPIO.out1_w1ts.val = (1 << (TFT_RD - 32))
+      #define RD_L TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_RD - 32))
+      #define RD_H TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_RD - 32))
     #elif (TFT_RD >= 0)
-      #define RD_L GPIO.out_w1tc = (1 << TFT_RD)
+      #define RD_L TFT_GPIO_OUT_CLR_LOW = (1 << TFT_RD)
       //#define RD_L digitalWrite(TFT_WR, LOW)
-      #define RD_H GPIO.out_w1ts = (1 << TFT_RD)
+      #define RD_H TFT_GPIO_OUT_SET_LOW = (1 << TFT_RD)
       //#define RD_H digitalWrite(TFT_WR, HIGH)
     #else
       #define RD_L
@@ -544,18 +556,22 @@ SPI3_HOST = 2,  ///< actually SPI2
 // Macros for all other SPI displays
 ////////////////////////////////////////////////////////////////////////////////////////
 #else
-  #if !defined(CONFIG_IDF_TARGET_ESP32S3)
-    #define TFT_WRITE_BITS(D, B) *_spi_mosi_dlen = B-1;  \
-                               *_spi_w = D;              \
-                               *_spi_cmd = SPI_USR;      \
-                        while (*_spi_cmd & SPI_USR);
+  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4)
+    #define TFT_WRITE_BITS(D, B) do {                       \
+                               *_spi_mosi_dlen = B-1;       \
+                               *_spi_w = D;                 \
+                               *_spi_cmd = SPI_USR;         \
+                               while (*_spi_cmd & SPI_USR); \
+                             } while (0)
   #else
-    #define TFT_WRITE_BITS(D, B) *_spi_mosi_dlen = B-1;  \
-                               *_spi_w = D;              \
-                               *_spi_cmd = SPI_UPDATE;   \
-                        while (*_spi_cmd & SPI_UPDATE);  \
-                               *_spi_cmd = SPI_USR;      \
-                        while (*_spi_cmd & SPI_USR);
+    #define TFT_WRITE_BITS(D, B) do {                          \
+                               *_spi_mosi_dlen = B-1;          \
+                               *_spi_w = D;                    \
+                               *_spi_cmd = SPI_UPDATE;         \
+                               while (*_spi_cmd & SPI_UPDATE); \
+                               *_spi_cmd = SPI_USR;            \
+                               while (*_spi_cmd & SPI_USR);    \
+                             } while (0)
   #endif
   // Write 8 bits
   #define tft_Write_8(C) TFT_WRITE_BITS(C, 8)
@@ -564,16 +580,20 @@ SPI3_HOST = 2,  ///< actually SPI2
   #define tft_Write_16(C) TFT_WRITE_BITS((C)<<8 | (C)>>8, 16)
 
   // Future option for transfer without wait
-  #if !defined(CONFIG_IDF_TARGET_ESP32S3)
-    #define tft_Write_16N(C) *_spi_mosi_dlen = 16-1;    \
+  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4)
+    #define tft_Write_16N(C) do {                       \
+                           *_spi_mosi_dlen = 16-1;      \
                            *_spi_w = ((C)<<8 | (C)>>8); \
-                           *_spi_cmd = SPI_USR;
+                           *_spi_cmd = SPI_USR;         \
+                         } while (0)
   #else
-    #define tft_Write_16N(C) *_spi_mosi_dlen = 16-1;    \
-                           *_spi_w = ((C)<<8 | (C)>>8); \
-                           *_spi_cmd = SPI_UPDATE;      \
-                    while (*_spi_cmd & SPI_UPDATE);     \
-                           *_spi_cmd = SPI_USR;
+    #define tft_Write_16N(C) do {                          \
+                           *_spi_mosi_dlen = 16-1;         \
+                           *_spi_w = ((C)<<8 | (C)>>8);    \
+                           *_spi_cmd = SPI_UPDATE;         \
+                           while (*_spi_cmd & SPI_UPDATE); \
+                           *_spi_cmd = SPI_USR;            \
+                         } while (0)
   #endif
 
   // Write 16 bits

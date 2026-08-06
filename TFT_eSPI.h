@@ -93,7 +93,7 @@
 #endif
 
 // Include the processor specific drivers
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
   #include "Processors/TFT_eSPI_ESP32_S3.h"
 #elif defined(CONFIG_IDF_TARGET_ESP32C3)
   #include "Processors/TFT_eSPI_ESP32_C3.h"

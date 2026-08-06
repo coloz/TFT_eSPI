@@ -323,52 +323,62 @@ menu "TFT_eSPI"
         config TFT_D0
             int "Data 0 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D1
             int "Data 1 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D2
             int "Data 2 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
         
         config TFT_D3
             int "Data 3 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D4
             int "Data 4 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D5
             int "Data 5 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D6
             int "Data 6 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D7
             int "Data 7 pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_WR
             int "Write strobe pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_RD
             int "Read strobe pin"
             default -1
-            range -1 33
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 33 if !IDF_TARGET_ESP32P4
     endmenu
 
     menu "Display SPI config"
@@ -378,12 +388,11 @@ menu "TFT_eSPI"
             prompt "SPI port"
             default TFT_VSPI_PORT
             help
-                The ESP32 has 2 free SPI ports i.e. VSPI (SPI2) and HSPI (SPI3),
-                the VSPI is the default. If the VSPI port is in use and pins are
-                not accessible (e.g. TTGO T-Beam) then use the HSPI port for the
-                TFT display.
+                ESP32-S2, ESP32-S3 and ESP32-P4 have two general-purpose SPI
+                ports (SPI2 and SPI3). SPI2 is the default. If SPI2 is already
+                in use, select SPI3 for the TFT display.
             config TFT_VSPI_PORT
-                bool "VSPI (SPI2)"
+                bool "Default port (SPI2)"
             config TFT_HSPI_PORT
                 bool "HSPI (SPI3)"
         endchoice
@@ -394,6 +403,7 @@ menu "TFT_eSPI"
             range -1 32 if IDF_TARGET_ESP32
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
+            range -1 54 if IDF_TARGET_ESP32P4
             help
                 Master In Slave Out pin.
                 Can be labelled as SDO in some displays
@@ -404,6 +414,7 @@ menu "TFT_eSPI"
             range -1 32 if IDF_TARGET_ESP32
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
+            range -1 54 if IDF_TARGET_ESP32P4
             help
                 Master Out Slave In pin.
                 Can be labelled as SDA or SDI in some displays
@@ -414,6 +425,7 @@ menu "TFT_eSPI"
             range -1 32 if IDF_TARGET_ESP32
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
+            range -1 54 if IDF_TARGET_ESP32P4
             help
                 Labelled in some displays as WR
 
@@ -452,11 +464,13 @@ menu "TFT_eSPI"
             range -1 33 if IDF_TARGET_ESP32
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
+            range -1 54 if IDF_TARGET_ESP32P4
     
         config TFT_DC
             int "TFT Data/Command pin"
             default -1
-            range -1 31
+            range -1 54 if IDF_TARGET_ESP32P4
+            range -1 31 if !IDF_TARGET_ESP32P4
             help
                 Labelled as DC or RS (Register Select) in some displays
     
@@ -466,6 +480,7 @@ menu "TFT_eSPI"
             range -1 33 if IDF_TARGET_ESP32
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
+            range -1 54 if IDF_TARGET_ESP32P4
 
         config ENABLE_BL
             bool "Enable backlight control"
@@ -478,6 +493,7 @@ menu "TFT_eSPI"
                 range -1 33 if IDF_TARGET_ESP32
                 range -1 45 if IDF_TARGET_ESP32S2
                 range -1 48 if IDF_TARGET_ESP32S3
+                range -1 54 if IDF_TARGET_ESP32P4
                 help
                     Pin for the backlight control signal
         
@@ -547,6 +563,7 @@ menu "TFT_eSPI"
                 range -1 33 if IDF_TARGET_ESP32
                 range -1 45 if IDF_TARGET_ESP32S2
                 range -1 48 if IDF_TARGET_ESP32S3
+                range -1 54 if IDF_TARGET_ESP32P4
 
             config SPI_TOUCH_FREQUENCY
                 int "SPI frequency for XPT2046 chip (Hz)"
