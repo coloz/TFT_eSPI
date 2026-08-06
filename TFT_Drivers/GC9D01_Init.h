@@ -220,7 +220,7 @@
   delay(200);
   writecommand(TFT_DISPON);
   delay(50);
-  writecommand(0x3C); // Write memory continue
+  writecommand(TFT_RAMWR);
 
   #undef GC9D01_DATA
 }
