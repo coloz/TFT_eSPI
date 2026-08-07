@@ -55,7 +55,7 @@ The use of PIO for SPI allows the RP2040 to be over-clocked (up to 250MHz works 
 
 A feature rich Arduino IDE compatible graphics and fonts library for 32-bit processors. The library is targeted at 32-bit processors, it  has been performance optimised for RP2040, STM32, ESP8266 and ESP32 types, other 32-bit processors may be used but will use the slower generic Arduino interface calls. The library can be loaded using the Arduino IDE's Library Manager. Direct Memory Access (DMA) can be used with the ESP32, RP2040 and STM32 processors with SPI interface displays to improve rendering performance. DMA with a parallel interface (8 and 16-bit) is only supported with the RP2040.
 
-The updates for the ESP32 S2/C3/S3 mean that the library requires the ESP32 Arduino board package 2.x.x or later. ESP32-P4 support has been compile-tested with the ESP32 Arduino board package 3.3.11.
+The updates for the ESP32 S2/C3/S3 mean that the library requires the ESP32 Arduino board package 2.x.x or later. ESP32-C5, ESP32-C6, ESP32-H2 and ESP32-P4 support has been compile-tested with the ESP32 Arduino board package 3.3.11.
 
 The screen controller, interface pins and library configuration settings must be defined inside the library. They can NOT be defined in the Arduino sketch. See the User_Setup_Select.h file for details. This approach has significant advantages, it keeps the examples clean from long configuration options and once the setup is defined any example can be run without modification. PlatformIO users can define these settings on a per project basis within a platformio.ini file, see Docs folder in library.
 
@@ -64,7 +64,7 @@ Lots of example sketches are provided which demonstrate using the functions in t
 Optimised drivers have been tested with the following processors:
 
 * RP2040, e.g. Raspberry Pi Pico
-* ESP32 and ESP32-S2, ESP32-C3, ESP32-S3, ESP32-P4
+* ESP32 and ESP32-S2, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-H2, ESP32-S3, ESP32-P4
 * ESP8266
 * STM32F1xx, STM32F2xx, STM32F4xx, STM32F767 (higher RAM processors recommended)
 
@@ -75,6 +75,9 @@ The library supports the following interface types for these processors:
 | RP2040    |     Yes    |      Yes       |       Yes       |  Yes (all)       |
 | ESP32     |     Yes    |      Yes       |       No        |  Yes (SPI only)  |
 | ESP32 C3  |     Yes    |      No        |       No        |  No              |
+| ESP32 C5  |     Yes    | Compile-tested |       No        |  Experimental    |
+| ESP32 C6  |     Yes    | Compile-tested |       No        |  Experimental    |
+| ESP32 H2  |     Yes    | Compile-tested |       No        |  Experimental    |
 | ESP32 S2  |     Yes    |      No        |       No        |  No              |
 | ESP32 S3  |     Yes    |      Yes       |       No        |  Yes (SPI only)  |
 | ESP32 P4  |     Yes    |      Yes       |       No        |  Yes (SPI only)  |
@@ -87,6 +90,8 @@ For other (generic) processors only SPI interface displays are supported and the
 4 wire SPI means the display must have SPI interface compatible signals and a "Data/Command" control signal, this signal line is sometimes labelled DC, RS or A0. 
 
 On ESP32-P4 the default port is GP-SPI2; define `USE_HSPI_PORT` to select GP-SPI3. GPIO matrix routing is supported, so select pins that are available on the board and are not reserved for flash, PSRAM or other board functions. The maximum configured SPI clock is 80 MHz, but the reliable display clock depends on the display and wiring.
+
+ESP32-C3, ESP32-C5, ESP32-C6 and ESP32-H2 expose only GP-SPI2 for application use, so `USE_HSPI_PORT` is not supported. If SPI pins are not specified in the TFT setup, the library uses the defaults from the selected Arduino board variant. C5/C6/H2 SPI, DMA and 8-bit parallel paths have been compile-tested; validate the selected pins, display timing and DMA behaviour on the target hardware.
 
 Due to lack of GPIO pins the 8-bit parallel interface is NOT supported on the ESP8266. 8-bit parallel interface TFTs  (e.g. UNO format mcufriend shields) can used with the STM32Fxxx Nucleo 64/144 range or the UNO format ESP32 (see below for ESP32).
 

@@ -8,7 +8,7 @@
 #define _TFT_eSPI_ESP32H_
 
 #if !defined(DISABLE_ALL_LIBRARY_WARNINGS)
- #warning >>>>------>> DMA is not supported on the ESP32 C3 or C6 (possible future update)
+ #warning >>>>------>> DMA support on the ESP32-C3/C5/C6/H2 is experimental
 #endif
 
 // Processor ID reported by getSetup()
@@ -19,7 +19,7 @@
 #include "driver/spi_master.h"
 #include "hal/gpio_ll.h"
 
-#if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6) && !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32)
+#if !defined(TFT_ESPI_ESP32_RISCV) && !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32)
   #define CONFIG_IDF_TARGET_ESP32
 #endif
 
@@ -27,14 +27,14 @@
   #define VSPI FSPI
 #endif
 
-// Fix IDF problems with ESP32C3
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
-  // Fix ESP32C3 IDF bug for missing definition (VSPI/FSPI only tested at the moment)
+// Compatibility aliases shared by the single-GPSPI ESP32 RISC-V targets.
+#if defined(TFT_ESPI_ESP32_RISCV)
+  // Some older IDF releases do not provide the generic SPI base macro.
   #ifndef REG_SPI_BASE
-    #define REG_SPI_BASE(i) DR_REG_SPI2_BASE // ?????????? C3 C6?
+    #define REG_SPI_BASE(i) DR_REG_SPI2_BASE
   #endif
 
-  // Fix ESP32C3 IDF bug for name change
+  // These targets expose the combined MOSI/MISO data length register as MS_DLEN.
   #ifndef SPI_MOSI_DLEN_REG
     #define SPI_MOSI_DLEN_REG(x) SPI_MS_DLEN_REG(x)
   #endif
@@ -269,7 +269,42 @@ SPI3_HOST = 2,  ///< actually SPI2
 ////////////////////////////////////////////////////////////////////////////////////////
 #if !defined (TFT_PARALLEL_8_BIT)
 
-  #ifdef USE_HSPI_PORT
+  #if defined(TFT_ESPI_ESP32_RISCV)
+
+    // C3/C5/C6/H2 expose only SPI2 as a general-purpose SPI controller.
+    #ifdef USE_HSPI_PORT
+      #error USE_HSPI_PORT is not available on ESP32-C3/C5/C6/H2; use the default SPI or USE_FSPI_PORT
+    #endif
+
+    // Follow the selected Arduino board variant when pins are not configured.
+    #ifndef TFT_MOSI
+      #define TFT_MOSI MOSI
+    #endif
+    #if (TFT_MOSI == -1)
+      #undef TFT_MOSI
+      #define TFT_MOSI MOSI
+    #endif
+
+    #ifndef TFT_SCLK
+      #define TFT_SCLK SCK
+    #endif
+    #if (TFT_SCLK == -1)
+      #undef TFT_SCLK
+      #define TFT_SCLK SCK
+    #endif
+
+    #ifndef TFT_MISO
+      #ifdef TFT_SDA_READ
+        #define TFT_MISO TFT_MOSI
+      #else
+        #define TFT_MISO MISO
+      #endif
+    #elif (TFT_MISO == -1) && defined(TFT_SDA_READ)
+      #undef TFT_MISO
+      #define TFT_MISO TFT_MOSI
+    #endif
+
+  #elif defined(USE_HSPI_PORT)
 
     #ifndef TFT_MISO
       #define TFT_MISO -1
@@ -311,13 +346,6 @@ SPI3_HOST = 2,  ///< actually SPI2
     #if (TFT_SCLK == -1)
       #undef TFT_SCLK
       #define TFT_SCLK 18
-    #endif
-
-    #if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C6) 
-      #if (TFT_MISO == -1)
-        #undef TFT_MISO
-        #define TFT_MISO TFT_MOSI
-      #endif
     #endif
 
   #endif
@@ -532,7 +560,7 @@ SPI3_HOST = 2,  ///< actually SPI2
   #define tft_Write_32D(C) TFT_WRITE_BITS((uint16_t)((C)<<8 | (C)>>8)<<16 | (uint16_t)((C)<<8 | (C)>>8), 32)
 //*/
 //* Replacement slimmer macros
-  #if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6) 
+  #if !defined(TFT_ESPI_ESP32_RISCV)
     #define TFT_WRITE_BITS(D, B) *_spi_mosi_dlen = B-1;  \
                                *_spi_w = D;              \
                                *_spi_cmd = SPI_USR;      \
@@ -552,7 +580,7 @@ SPI3_HOST = 2,  ///< actually SPI2
   #define tft_Write_16(C) TFT_WRITE_BITS((C)<<8 | (C)>>8, 16)
 
   // Future option for transfer without wait
-  #if !defined(CONFIG_IDF_TARGET_ESP32C3) && !defined(CONFIG_IDF_TARGET_ESP32C6) 
+  #if !defined(TFT_ESPI_ESP32_RISCV)
     #define tft_Write_16N(C) *_spi_mosi_dlen = 16-1;    \
                            *_spi_w = ((C)<<8 | (C)>>8); \
                            *_spi_cmd = SPI_USR;

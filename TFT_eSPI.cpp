@@ -18,8 +18,8 @@
 #if defined (ESP32)
   #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
     #include "Processors/TFT_eSPI_ESP32_S3.c" // SPI2/SPI3 targets, tested with SPI and 8-bit parallel
-  #elif defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C6)
-    #include "Processors/TFT_eSPI_ESP32_C3.c" // Tested with SPI (8-bit parallel will probably work too!)
+  #elif defined(TFT_ESPI_ESP32_RISCV)
+    #include "Processors/TFT_eSPI_ESP32_C3.c" // Single-GPSPI RISC-V targets (C3/C5/C6/H2)
   #else
     #include "Processors/TFT_eSPI_ESP32.c"
   #endif
