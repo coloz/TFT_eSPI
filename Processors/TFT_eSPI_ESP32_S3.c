@@ -52,8 +52,191 @@
   #endif
 #endif
 
+#if defined(TFT_QSPI)
+  static spi_device_handle_t qspiHAL = nullptr;
+  static bool qspiBusReady = false;
+  #ifdef USE_HSPI_PORT
+    static const spi_host_device_t qspiHost = SPI3_HOST;
+  #else
+    static const spi_host_device_t qspiHost = SPI2_HOST;
+  #endif
+#endif
+
+#if defined(TFT_QSPI)
 ////////////////////////////////////////////////////////////////////////////////////////
-#if defined (TFT_SDA_READ) && !defined (TFT_PARALLEL_8_BIT)
+// ESP32-S3 1-1-4 QSPI backend
+////////////////////////////////////////////////////////////////////////////////////////
+
+static void qspiCheck(esp_err_t result)
+{
+  ESP_ERROR_CHECK(result);
+}
+
+void TFT_eSPI::qspiBusInit(void)
+{
+  if (qspiBusReady) return;
+
+  spi_bus_config_t buscfg = {};
+  buscfg.mosi_io_num = TFT_D0;
+  buscfg.miso_io_num = TFT_D1;
+  buscfg.sclk_io_num = TFT_SCLK;
+  buscfg.quadwp_io_num = TFT_D2;
+  buscfg.quadhd_io_num = TFT_D3;
+  buscfg.max_transfer_sz = 4096;
+
+  esp_err_t result = spi_bus_initialize(qspiHost, &buscfg, SPI_DMA_CH_AUTO);
+  if (result != ESP_OK && result != ESP_ERR_INVALID_STATE) qspiCheck(result);
+
+  spi_device_interface_config_t devcfg = {};
+  devcfg.mode = TFT_SPI_MODE;
+  devcfg.clock_speed_hz = SPI_FREQUENCY;
+  devcfg.spics_io_num = TFT_CS;
+  devcfg.queue_size = 1;
+  devcfg.flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_NO_DUMMY;
+
+  qspiCheck(spi_bus_add_device(qspiHost, &devcfg, &qspiHAL));
+  qspiBusReady = true;
+}
+
+void TFT_eSPI::qspiWriteCommand(uint8_t command, const uint8_t *data, uint32_t length)
+{
+  if (!qspiBusReady) qspiBusInit();
+
+  qspiCheck(spi_device_acquire_bus(qspiHAL, portMAX_DELAY));
+
+  uint8_t command_frame[4] = {0x02, 0x00, command, 0x00};
+  spi_transaction_t transaction = {};
+  transaction.length = 32;
+  transaction.tx_buffer = command_frame;
+  if (length) transaction.flags = SPI_TRANS_CS_KEEP_ACTIVE;
+  qspiCheck(spi_device_polling_transmit(qspiHAL, &transaction));
+
+  const uint32_t staging_size = 64;
+  uint32_t staging_words[staging_size / sizeof(uint32_t)];
+  uint8_t *staging = reinterpret_cast<uint8_t *>(staging_words);
+
+  while (length) {
+    uint32_t chunk = length > staging_size ? staging_size : length;
+    memcpy(staging, data, chunk);
+    data += chunk;
+    length -= chunk;
+
+    memset(&transaction, 0, sizeof(transaction));
+    transaction.length = chunk * 8;
+    transaction.tx_buffer = staging;
+    if (length) transaction.flags = SPI_TRANS_CS_KEEP_ACTIVE;
+    qspiCheck(spi_device_polling_transmit(qspiHAL, &transaction));
+  }
+
+  spi_device_release_bus(qspiHAL);
+  _qspiLastCommand = command;
+  _qspiRamWriteStarted = false;
+}
+
+void TFT_eSPI::qspiWriteData(uint8_t data)
+{
+  // QSPI has no separate DC line, so repeat the last command and attach this
+  // byte as its parameter. Internal driver paths use qspiWriteCommand() to
+  // send all parameters atomically.
+  qspiWriteCommand(_qspiLastCommand, &data, 1);
+}
+
+void TFT_eSPI::qspiWritePixels(const void *data_in, uint32_t length, bool swap_bytes)
+{
+  if (!length) return;
+  if (!qspiBusReady) qspiBusInit();
+
+  qspiCheck(spi_device_acquire_bus(qspiHAL, portMAX_DELAY));
+
+  const uint8_t memory_command = _qspiRamWriteStarted ? TFT_RAMWRC : TFT_RAMWR;
+  uint8_t command_frame[4] = {0x32, 0x00, memory_command, 0x00};
+  spi_transaction_t transaction = {};
+  transaction.length = 32;
+  transaction.tx_buffer = command_frame;
+  transaction.flags = SPI_TRANS_CS_KEEP_ACTIVE;
+  qspiCheck(spi_device_polling_transmit(qspiHAL, &transaction));
+
+  const uint32_t staging_pixels = 256;
+  uint32_t staging_words[staging_pixels / 2];
+  uint8_t *staging = reinterpret_cast<uint8_t *>(staging_words);
+  const uint8_t *source = reinterpret_cast<const uint8_t *>(data_in);
+
+  while (length) {
+    uint32_t chunk = length > staging_pixels ? staging_pixels : length;
+    if (swap_bytes) {
+      for (uint32_t i = 0; i < chunk; ++i) {
+        staging[2 * i] = source[2 * i + 1];
+        staging[2 * i + 1] = source[2 * i];
+      }
+    } else {
+      memcpy(staging, source, chunk * 2);
+    }
+
+    source += chunk * 2;
+    length -= chunk;
+
+    memset(&transaction, 0, sizeof(transaction));
+    transaction.length = chunk * 16;
+    transaction.tx_buffer = staging;
+    transaction.flags = SPI_TRANS_MODE_QIO;
+    if (length) transaction.flags |= SPI_TRANS_CS_KEEP_ACTIVE;
+    qspiCheck(spi_device_polling_transmit(qspiHAL, &transaction));
+  }
+
+  spi_device_release_bus(qspiHAL);
+  _qspiLastCommand = memory_command;
+  _qspiRamWriteStarted = true;
+}
+
+void TFT_eSPI::qspiWriteBlock(uint16_t color, uint32_t length)
+{
+  if (!length) return;
+  if (!qspiBusReady) qspiBusInit();
+
+  qspiCheck(spi_device_acquire_bus(qspiHAL, portMAX_DELAY));
+
+  const uint8_t memory_command = _qspiRamWriteStarted ? TFT_RAMWRC : TFT_RAMWR;
+  uint8_t command_frame[4] = {0x32, 0x00, memory_command, 0x00};
+  spi_transaction_t transaction = {};
+  transaction.length = 32;
+  transaction.tx_buffer = command_frame;
+  transaction.flags = SPI_TRANS_CS_KEEP_ACTIVE;
+  qspiCheck(spi_device_polling_transmit(qspiHAL, &transaction));
+
+  const uint32_t staging_pixels = 256;
+  uint32_t staging_words[staging_pixels / 2];
+  uint8_t *staging = reinterpret_cast<uint8_t *>(staging_words);
+  for (uint32_t i = 0; i < staging_pixels; ++i) {
+    staging[2 * i] = color >> 8;
+    staging[2 * i + 1] = color;
+  }
+
+  while (length) {
+    uint32_t chunk = length > staging_pixels ? staging_pixels : length;
+    length -= chunk;
+
+    memset(&transaction, 0, sizeof(transaction));
+    transaction.length = chunk * 16;
+    transaction.tx_buffer = staging;
+    transaction.flags = SPI_TRANS_MODE_QIO;
+    if (length) transaction.flags |= SPI_TRANS_CS_KEEP_ACTIVE;
+    qspiCheck(spi_device_polling_transmit(qspiHAL, &transaction));
+  }
+
+  spi_device_release_bus(qspiHAL);
+  _qspiLastCommand = memory_command;
+  _qspiRamWriteStarted = true;
+}
+
+void TFT_eSPI::qspiWriteColor(uint16_t color)
+{
+  qspiWriteBlock(color, 1);
+}
+
+#endif // TFT_QSPI
+
+////////////////////////////////////////////////////////////////////////////////////////
+#if defined (TFT_SDA_READ) && !defined(TFT_QSPI) && !defined (TFT_PARALLEL_8_BIT)
 ////////////////////////////////////////////////////////////////////////////////////////
 
 /***************************************************************************************
@@ -204,6 +387,26 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+#elif defined(TFT_QSPI)
+////////////////////////////////////////////////////////////////////////////////////////
+// QSPI displays
+////////////////////////////////////////////////////////////////////////////////////////
+
+void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
+{
+  qspiWriteBlock(color, len);
+}
+
+void TFT_eSPI::pushSwapBytePixels(const void* data_in, uint32_t len)
+{
+  qspiWritePixels(data_in, len, true);
+}
+
+void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
+{
+  qspiWritePixels(data_in, len, _swapBytes);
+}
+
 #elif !defined (SPI_18BIT_DRIVER) && !defined (TFT_PARALLEL_8_BIT) // Most SPI displays
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -629,7 +832,54 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-#if defined (ESP32_DMA) && !defined (TFT_PARALLEL_8_BIT) //       DMA FUNCTIONS
+#if defined(TFT_QSPI)
+////////////////////////////////////////////////////////////////////////////////////////
+// QSPI uses the ESP-IDF DMA-capable SPI master for every synchronous transfer.
+// Keep the public DMA API link-compatible; transfers complete before returning.
+////////////////////////////////////////////////////////////////////////////////////////
+
+bool TFT_eSPI::initDMA(bool ctrl_cs)
+{
+  (void)ctrl_cs;
+  if (!qspiBusReady) qspiBusInit();
+  bool was_enabled = DMA_Enabled;
+  DMA_Enabled = true;
+  return !was_enabled;
+}
+
+void TFT_eSPI::deInitDMA(void)
+{
+  // The QSPI transport always requires the DMA-capable ESP-IDF SPI bus.
+  DMA_Enabled = false;
+}
+
+bool TFT_eSPI::dmaBusy(void)
+{
+  return false;
+}
+
+void TFT_eSPI::dmaWait(void)
+{
+}
+
+void TFT_eSPI::pushPixelsDMA(uint16_t* image, uint32_t len)
+{
+  qspiWritePixels(image, len, _swapBytes);
+}
+
+void TFT_eSPI::pushImageDMA(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t* image, uint16_t* buffer)
+{
+  (void)buffer;
+  pushImage(x, y, w, h, image);
+}
+
+void TFT_eSPI::pushImageDMA(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t const* image)
+{
+  pushImage(x, y, w, h, image);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+#elif defined (ESP32_DMA) && !defined (TFT_PARALLEL_8_BIT) //       DMA FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////////////
 
 /***************************************************************************************

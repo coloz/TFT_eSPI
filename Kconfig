@@ -75,6 +75,9 @@ menu "TFT_eSPI"
             bool "GC9107"
         config TFT_GC9D01_DRIVER
             bool "GC9D01"
+        config TFT_CH13613_DRIVER
+            bool "CH13613 (ESP32-S3 QSPI)"
+            depends on IDF_TARGET_ESP32S3
         config TFT_AXS15231B_DRIVER
             bool "AXS15231B"
         config TFT_CO5300_DRIVER
@@ -309,80 +312,92 @@ menu "TFT_eSPI"
 
     choice TFT_INTERFACE
         prompt "LCD Interface"
+        default TFT_QSPI if TFT_CH13613_DRIVER
         default TFT_SPI
         help
             Communication interface between the microcontroller and the LCD.
         config TFT_SPI
             bool "SPI"
+            depends on !TFT_CH13613_DRIVER
+        config TFT_QSPI
+            bool "QSPI (ESP32-S3, 1-1-4)"
+            depends on TFT_CH13613_DRIVER && IDF_TARGET_ESP32S3
         config TFT_PARALLEL_8_BIT
             bool "Parallel (8-bit)"
+            depends on !TFT_CH13613_DRIVER
     endchoice
     
     menu "Display Data pins"
-        depends on TFT_PARALLEL_8_BIT
+        depends on TFT_PARALLEL_8_BIT || TFT_QSPI
         config TFT_D0
-            int "Data 0 pin"
+            int "Data 0 pin (QSPI IO0)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D1
-            int "Data 1 pin"
+            int "Data 1 pin (QSPI IO1)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D2
-            int "Data 2 pin"
+            int "Data 2 pin (QSPI IO2)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
         
         config TFT_D3
-            int "Data 3 pin"
+            int "Data 3 pin (QSPI IO3)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D4
             int "Data 4 pin"
+            depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D5
             int "Data 5 pin"
+            depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D6
             int "Data 6 pin"
+            depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_D7
             int "Data 7 pin"
+            depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_WR
             int "Write strobe pin"
+            depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 31 if !IDF_TARGET_ESP32P4
 
         config TFT_RD
             int "Read strobe pin"
+            depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
             range -1 33 if !IDF_TARGET_ESP32P4
     endmenu
 
     menu "Display SPI config"
-        depends on TFT_SPI
+        depends on TFT_SPI || TFT_QSPI
     
         choice TFT_SPI_PORT
             prompt "SPI port"
@@ -399,6 +414,7 @@ menu "TFT_eSPI"
 
         config TFT_MISO
             int "TFT MISO pin"
+            depends on TFT_SPI
             default -1
             range -1 32 if IDF_TARGET_ESP32
             range -1 45 if IDF_TARGET_ESP32S2
@@ -410,6 +426,7 @@ menu "TFT_eSPI"
 
         config TFT_MOSI
             int "TFT MOSI pin"
+            depends on TFT_SPI
             default -1
             range -1 32 if IDF_TARGET_ESP32
             range -1 45 if IDF_TARGET_ESP32S2
@@ -431,6 +448,7 @@ menu "TFT_eSPI"
 
         config TFT_SDA_READ
             bool "Use SDA line for reading"
+            depends on TFT_SPI
             default "n"
             help
                 Some displays support SPI reads via the MISO pin, other displays have a single
@@ -449,6 +467,7 @@ menu "TFT_eSPI"
 
         config TFT_SPI_READ_FREQ
             int "SPI Read Frequency (Hz)"
+            depends on TFT_SPI
             default 20000000
             range -1 80000000
             help

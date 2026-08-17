@@ -40,11 +40,12 @@
 //   User configuration selection lines are below    //
 ///////////////////////////////////////////////////////
 
-//#include <User_Setups/Setup0_Sprite.h> // For QSPI displays - in development
+//#include <User_Setups/Setup0_Sprite.h> // For Sprite-only use without a display
+#include <User_Setups/Setup_CH13613_ESP32_S3_QSPI.h> // OSPTEK 480x480 AMOLED
 
 // Only ONE line below should be uncommented to define your setup.  Add extra lines and files as needed.
 
-#include <User_Setup.h>           // Default setup is root library folder
+//#include <User_Setup.h>           // Default setup is root library folder
 
 //#include <User_Setups/Setup1_ILI9341.h>  // Setup file for ESP8266 configured for my ILI9341
 //#include <User_Setups/Setup2_ST7735.h>   // Setup file for ESP8266 configured for my ST7735
@@ -315,6 +316,9 @@
 #elif defined (GC9D01_DRIVER)
      #include "TFT_Drivers/GC9D01_Defines.h"
      #define  TFT_DRIVER 0x9D01
+#elif defined (CH13613_DRIVER)
+     #include "TFT_Drivers/CH13613_Defines.h"
+     #define  TFT_DRIVER 0x3613
 #elif defined (AXS15231B_DRIVER) || defined (CO5300_DRIVER) || defined (GC9106_DRIVER) || \
       defined (GC9C01_DRIVER) || defined (HX8369A_DRIVER) || defined (ILI9806_DRIVER) || \
       defined (JD9613_DRIVER) || defined (NT35310_DRIVER) || defined (NT39125_DRIVER) || \

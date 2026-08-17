@@ -19,6 +19,18 @@
   #define CONFIG_IDF_TARGET_ESP32
 #endif
 
+#if defined(TFT_QSPI)
+  #if !defined(CONFIG_IDF_TARGET_ESP32S3)
+    #error "TFT_eSPI QSPI is currently supported on ESP32-S3 only"
+  #endif
+  #if !defined(TFT_CS) || (TFT_CS < 0)
+    #error "TFT_QSPI requires a valid TFT_CS pin"
+  #endif
+  #if !defined(TFT_SCLK) || !defined(TFT_D0) || !defined(TFT_D1) || !defined(TFT_D2) || !defined(TFT_D3)
+    #error "TFT_QSPI requires TFT_SCLK and TFT_D0 through TFT_D3"
+  #endif
+#endif
+
 #ifndef VSPI
   #define VSPI FSPI
 #endif
@@ -100,7 +112,11 @@ the value passed to the SPIClass constructor.
 #endif
 
 // Initialise processor specific SPI functions, used by init()
-#define INIT_TFT_DATA_BUS // Not used
+#if defined(TFT_QSPI)
+  #define INIT_TFT_DATA_BUS qspiBusInit()
+#else
+  #define INIT_TFT_DATA_BUS // Not used
+#endif
 
 // Define a generic flag for 8-bit parallel
 #if defined (ESP32_PARALLEL) // Specific to ESP32 for backwards compatibility
@@ -121,7 +137,10 @@ the value passed to the SPIClass constructor.
 #endif
 
 // Processor specific code used by SPI bus transaction startWrite and endWrite functions
-#if !defined (ESP32_PARALLEL)
+#if defined(TFT_QSPI)
+  #define SET_BUS_WRITE_MODE
+  #define SET_BUS_READ_MODE
+#elif !defined (ESP32_PARALLEL)
   #define _spi_cmd       (volatile uint32_t*)(SPI_CMD_REG(SPI_PORT))
   #define _spi_user      (volatile uint32_t*)(SPI_USER_REG(SPI_PORT))
   #define _spi_mosi_dlen (volatile uint32_t*)(SPI_MOSI_DLEN_REG(SPI_PORT))
@@ -141,7 +160,7 @@ the value passed to the SPIClass constructor.
 #endif
 
 // Code to check if DMA is busy, used by SPI bus transaction transaction and endWrite functions
-#if !defined(TFT_PARALLEL_8_BIT) && !defined(SPI_18BIT_DRIVER)
+#if !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(SPI_18BIT_DRIVER)
   #define ESP32_DMA
   // Code to check if DMA is busy, used by SPI DMA + transaction + endWrite functions
   #define DMA_BUSY_CHECK  dmaWait()
@@ -149,7 +168,7 @@ the value passed to the SPIClass constructor.
   #define DMA_BUSY_CHECK
 #endif
 
-#if defined(TFT_PARALLEL_8_BIT)
+#if defined(TFT_PARALLEL_8_BIT) || defined(TFT_QSPI)
   #define SPI_BUSY_CHECK
 #else
   #define SPI_BUSY_CHECK while (*_spi_cmd&SPI_USR)
@@ -227,7 +246,11 @@ the value passed to the SPIClass constructor.
   #define CS_L       // No macro allocated so it generates no code
   #define CS_H       // No macro allocated so it generates no code
 #else
-  #if defined (TFT_PARALLEL_8_BIT)
+  #if defined(TFT_QSPI)
+    // ESP-IDF's SPI master owns CS for QSPI transactions.
+    #define CS_L
+    #define CS_H
+  #elif defined (TFT_PARALLEL_8_BIT)
     #if TFT_CS >= 32
         #define CS_L TFT_GPIO_OUT_CLR_HIGH = (1 << (TFT_CS - 32))
         #define CS_H TFT_GPIO_OUT_SET_HIGH = (1 << (TFT_CS - 32))
@@ -490,6 +513,18 @@ the value passed to the SPIClass constructor.
 ////////////////////////////////////////////////////////////////////////////////////////
 // Macros to write commands/pixel colour data to a SPI ILI948x TFT
 ////////////////////////////////////////////////////////////////////////////////////////
+#elif defined(TFT_QSPI)
+
+  // QSPI transfers need a 32-bit controller prefix and cannot be expressed as
+  // raw register writes. Route the low-level macros through the class helpers.
+  #define tft_Write_8(C)       qspiWriteData((uint8_t)(C))
+  #define tft_Write_16(C)      qspiWriteColor((uint16_t)(C))
+  #define tft_Write_16N(C)     qspiWriteColor((uint16_t)(C))
+  #define tft_Write_16S(C)     qspiWriteColor((uint16_t)(((C) >> 8) | ((C) << 8)))
+  #define tft_Write_32(C)      do { qspiWriteColor((uint16_t)((C) >> 16)); qspiWriteColor((uint16_t)(C)); } while (0)
+  #define tft_Write_32C(C,D)   do { qspiWriteColor((uint16_t)(C)); qspiWriteColor((uint16_t)(D)); } while (0)
+  #define tft_Write_32D(C)     qspiWriteBlock((uint16_t)(C), 2)
+
 #elif  defined (SPI_18BIT_DRIVER) // SPI 18-bit colour
 
   // Write 8 bits to TFT
@@ -617,7 +652,10 @@ the value passed to the SPIClass constructor.
 ////////////////////////////////////////////////////////////////////////////////////////
 // Macros to read from display using SPI or software SPI
 ////////////////////////////////////////////////////////////////////////////////////////
-#if !defined (TFT_PARALLEL_8_BIT)
+#if defined(TFT_QSPI)
+  // CH13613 QSPI register/pixel reads are not implemented.
+  #define tft_Read_8() 0
+#elif !defined (TFT_PARALLEL_8_BIT)
   // Read from display using SPI or software SPI
   // Use a SPI read transfer
   #define tft_Read_8() spi.transfer(0)

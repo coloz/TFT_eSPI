@@ -74,7 +74,7 @@
 inline void TFT_eSPI::begin_tft_write(void){
   if (locked) {
     locked = false; // Flag to show SPI access now unlocked
-#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
     spi.beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, TFT_SPI_MODE));
 #endif
     CS_L;
@@ -86,7 +86,7 @@ inline void TFT_eSPI::begin_tft_write(void){
 void TFT_eSPI::begin_nin_write(void){
   if (locked) {
     locked = false; // Flag to show SPI access now unlocked
-#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
     spi.beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, TFT_SPI_MODE));
 #endif
     CS_L;
@@ -105,7 +105,7 @@ inline void TFT_eSPI::end_tft_write(void){
       SPI_BUSY_CHECK;       // Check send complete and clean out unused rx data
       CS_H;
       SET_BUS_READ_MODE;    // In case bus has been configured for tx only
-#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
       spi.endTransaction();
 #endif
     }
@@ -120,7 +120,7 @@ inline void TFT_eSPI::end_nin_write(void){
       SPI_BUSY_CHECK;       // Check send complete and clean out unused rx data
       CS_H;
       SET_BUS_READ_MODE;    // In case SPI has been configured for tx only
-#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
       spi.endTransaction();
 #endif
     }
@@ -134,14 +134,14 @@ inline void TFT_eSPI::end_nin_write(void){
 // Reads require a lower SPI clock rate than writes
 inline void TFT_eSPI::begin_tft_read(void){
   DMA_BUSY_CHECK; // Wait for any DMA transfer to complete before changing SPI settings
-#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
   if (locked) {
     locked = false;
     spi.beginTransaction(SPISettings(SPI_READ_FREQUENCY, MSBFIRST, TFT_SPI_MODE));
     CS_L;
   }
 #else
-  #if !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+  #if !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
     spi.setFrequency(SPI_READ_FREQUENCY);
   #endif
    CS_L;
@@ -154,7 +154,7 @@ inline void TFT_eSPI::begin_tft_read(void){
 ** Description:             End transaction for reads and deselect TFT
 ***************************************************************************************/
 inline void TFT_eSPI::end_tft_read(void){
-#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+#if defined (SPI_HAS_TRANSACTION) && defined (SUPPORT_TRANSACTIONS) && !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
   if(!inTransaction) {
     if (!locked) {
       locked = true;
@@ -163,7 +163,7 @@ inline void TFT_eSPI::end_tft_read(void){
     }
   }
 #else
-  #if !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+  #if !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
     spi.setFrequency(SPI_FREQUENCY);
   #endif
    if(!inTransaction) {CS_H;}
@@ -581,6 +581,11 @@ TFT_eSPI::TFT_eSPI(int16_t w, int16_t h)
   addr_row = 0xFFFF;  // drawPixel command length optimiser
   addr_col = 0xFFFF;  // drawPixel command length optimiser
 
+#if defined(TFT_QSPI)
+  _qspiLastCommand = TFT_NOP;
+  _qspiRamWriteStarted = false;
+#endif
+
   _xPivot = 0;
   _yPivot = 0;
 
@@ -740,7 +745,7 @@ void TFT_eSPI::init(uint8_t tc)
   spi.begin(); // This will set HMISO to input
 
 #else
-  #if !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
+  #if !defined(TFT_QSPI) && !defined(TFT_PARALLEL_8_BIT) && !defined(RP2040_PIO_INTERFACE)
     #if defined (TFT_MOSI) && !defined (TFT_SPI_OVERLAP) && !defined(ARDUINO_ARCH_RP2040) && !defined (ARDUINO_ARCH_MBED)
       spi.begin(TFT_SCLK, TFT_MISO, TFT_MOSI, -1); // This will set MISO to input
     #else
@@ -755,7 +760,7 @@ void TFT_eSPI::init(uint8_t tc)
     INIT_TFT_DATA_BUS;
 
 
-#if defined (TFT_CS) && !defined(RP2040_PIO_INTERFACE)
+#if defined (TFT_CS) && !defined(TFT_QSPI) && !defined(RP2040_PIO_INTERFACE)
   // Set to output once again in case MISO is used for CS
   if (TFT_CS >= 0) {
     pinMode(TFT_CS, OUTPUT);
@@ -887,6 +892,9 @@ void TFT_eSPI::init(uint8_t tc)
 
 #elif defined (GC9D01_DRIVER)
      #include "TFT_Drivers/GC9D01_Init.h"
+
+#elif defined (CH13613_DRIVER)
+     #include "TFT_Drivers/CH13613_Init.h"
 
 #elif defined (ARDUINO_GFX_DCS_DRIVER)
      #include "TFT_Drivers/ArduinoGFX_DCS_Init.h"
@@ -1040,6 +1048,9 @@ void TFT_eSPI::setRotation(uint8_t m)
 #elif defined (GC9D01_DRIVER)
      #include "TFT_Drivers/GC9D01_Rotation.h"
 
+#elif defined (CH13613_DRIVER)
+     #include "TFT_Drivers/CH13613_Rotation.h"
+
 #elif defined (ARDUINO_GFX_DCS_DRIVER)
      #include "TFT_Drivers/ArduinoGFX_DCS_Rotation.h"
 
@@ -1140,6 +1151,16 @@ void TFT_eSPI::commandList (const uint8_t *addr)
 
   while (numCommands--)                  // For each command...
   {
+#if defined(TFT_QSPI)
+    const uint8_t command = pgm_read_byte(addr++);
+    numArgs = pgm_read_byte(addr++);
+    ms = numArgs & TFT_INIT_DELAY;
+    numArgs &= ~TFT_INIT_DELAY;
+
+    uint8_t args[128];
+    for (uint8_t i = 0; i < numArgs; ++i) args[i] = pgm_read_byte(addr++);
+    writecommand(command, args, numArgs);
+#else
     writecommand(pgm_read_byte(addr++)); // Read, issue command
     numArgs = pgm_read_byte(addr++);     // Number of args to follow
     ms = numArgs & TFT_INIT_DELAY;       // If high bit set, delay follows args
@@ -1149,6 +1170,7 @@ void TFT_eSPI::commandList (const uint8_t *addr)
     {
       writedata(pgm_read_byte(addr++));  // Read, issue argument
     }
+#endif
 
     if (ms)
     {
@@ -1167,7 +1189,11 @@ void TFT_eSPI::commandList (const uint8_t *addr)
 void TFT_eSPI::spiwrite(uint8_t c)
 {
   begin_tft_write();
+#if defined(TFT_QSPI)
+  qspiWriteData(c);
+#else
   tft_Write_8(c);
+#endif
   end_tft_write();
 }
 
@@ -1181,11 +1207,15 @@ void TFT_eSPI::writecommand(uint8_t c)
 {
   begin_tft_write();
 
+#if defined(TFT_QSPI)
+  qspiWriteCommand(c, nullptr, 0);
+#else
   DC_C;
 
   tft_Write_8(c);
 
   DC_D;
+#endif
 
   end_tft_write();
 }
@@ -1237,6 +1267,26 @@ void TFT_eSPI::writeRegister16(uint16_t c, uint16_t d)
 #endif
 
 /***************************************************************************************
+** Function name:           writecommand
+** Description:             Send an 8-bit command and its parameters atomically
+***************************************************************************************/
+void TFT_eSPI::writecommand(uint8_t c, const uint8_t *data, uint32_t len)
+{
+  begin_tft_write();
+
+#if defined(TFT_QSPI)
+  qspiWriteCommand(c, data, len);
+#else
+  DC_C;
+  tft_Write_8(c);
+  DC_D;
+  while (len--) tft_Write_8(*data++);
+#endif
+
+  end_tft_write();
+}
+
+/***************************************************************************************
 ** Function name:           writedata
 ** Description:             Send a 8-bit data value to the TFT
 ***************************************************************************************/
@@ -1244,11 +1294,15 @@ void TFT_eSPI::writedata(uint8_t d)
 {
   begin_tft_write();
 
+#if defined(TFT_QSPI)
+  qspiWriteData(d);
+#else
   DC_D;        // Play safe, but should already be in data mode
 
   tft_Write_8(d);
 
   CS_L;        // Allow more hold time for low VDI rail
+#endif
 
   end_tft_write();
 }
@@ -3565,6 +3619,25 @@ void TFT_eSPI::setWindow(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 
 #if defined (TFT_MONO_DRIVER)
   _monoSetWindow(x0, y0, x1, y1);
+#elif defined (TFT_QSPI)
+  #ifdef CGRAM_OFFSET
+    x0 += colstart;
+    x1 += colstart;
+    y0 += rowstart;
+    y1 += rowstart;
+  #endif
+
+  const uint8_t column_data[] = {
+    (uint8_t)(x0 >> 8), (uint8_t)x0,
+    (uint8_t)(x1 >> 8), (uint8_t)x1
+  };
+  const uint8_t row_data[] = {
+    (uint8_t)(y0 >> 8), (uint8_t)y0,
+    (uint8_t)(y1 >> 8), (uint8_t)y1
+  };
+  qspiWriteCommand(TFT_CASET, column_data, sizeof(column_data));
+  qspiWriteCommand(TFT_PASET, row_data, sizeof(row_data));
+  _qspiRamWriteStarted = false;
 #elif defined (ILI9225_DRIVER)
   if (rotation & 0x01) { transpose(x0, y0); transpose(x1, y1); }
   SPI_BUSY_CHECK;
@@ -6415,7 +6488,10 @@ void TFT_eSPI::getSetup(setup_t &tft_settings)
       tft_settings.port = 255;
     #endif
   #endif
-  #ifdef RP2040_PIO_SPI
+  #ifdef TFT_QSPI
+    tft_settings.interface = 0x20;
+    tft_settings.tft_rd_freq = 0;
+  #elif defined(RP2040_PIO_SPI)
     tft_settings.interface = 0x10;
   #else
     tft_settings.interface = 0x0;
@@ -6500,7 +6576,16 @@ void TFT_eSPI::getSetup(setup_t &tft_settings)
   tft_settings.pin_tft_rst = -1;
 #endif
 
-#if defined (TFT_PARALLEL_8_BIT) || defined(TFT_PARALLEL_16_BIT)
+#if defined(TFT_QSPI)
+  tft_settings.pin_tft_d0 = TFT_D0;
+  tft_settings.pin_tft_d1 = TFT_D1;
+  tft_settings.pin_tft_d2 = TFT_D2;
+  tft_settings.pin_tft_d3 = TFT_D3;
+  tft_settings.pin_tft_d4 = -1;
+  tft_settings.pin_tft_d5 = -1;
+  tft_settings.pin_tft_d6 = -1;
+  tft_settings.pin_tft_d7 = -1;
+#elif defined (TFT_PARALLEL_8_BIT) || defined(TFT_PARALLEL_16_BIT)
   tft_settings.pin_tft_d0 = TFT_D0;
   tft_settings.pin_tft_d1 = TFT_D1;
   tft_settings.pin_tft_d2 = TFT_D2;

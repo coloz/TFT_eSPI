@@ -69,6 +69,7 @@
 //#define GC9A01_DRIVER
 //#define GC9107_DRIVER      // 128 x 128 or 128 x 160 GRAM
 //#define GC9D01_DRIVER      // 160 x 160 dual gate or 40/50/60 x 160 single gate
+//#define CH13613_DRIVER     // 480 x 480 AMOLED, QSPI on ESP32-S3
 //#define AXS15231B_DRIVER
 //#define CO5300_DRIVER
 //#define GC9106_DRIVER

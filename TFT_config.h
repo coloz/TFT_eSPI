@@ -86,6 +86,8 @@
     #define GC9107_DRIVER
 #elif defined (CONFIG_TFT_GC9D01_DRIVER)
     #define GC9D01_DRIVER
+#elif defined (CONFIG_TFT_CH13613_DRIVER)
+    #define CH13613_DRIVER
 #elif defined (CONFIG_TFT_AXS15231B_DRIVER)
     #define AXS15231B_DRIVER
 #elif defined (CONFIG_TFT_CO5300_DRIVER)
@@ -250,10 +252,12 @@
     #define TFT_CS          CONFIG_TFT_CS
 #endif
 
-#if CONFIG_TFT_DC == -1
-    #error "Invalid Data/Command pin. Check TFT_eSPI configuration"
-#else
-    #define TFT_DC          CONFIG_TFT_DC
+#if !defined(CONFIG_TFT_QSPI)
+    #if CONFIG_TFT_DC == -1
+        #error "Invalid Data/Command pin. Check TFT_eSPI configuration"
+    #else
+        #define TFT_DC          CONFIG_TFT_DC
+    #endif
 #endif
 
 #if CONFIG_TFT_RST == -1
@@ -280,8 +284,49 @@
 **                         Section 3: Data bus Pin configuration
 ***************************************************************************************/
 
+// QSPI BUS
+#ifdef CONFIG_TFT_QSPI
+
+    #define TFT_QSPI
+
+    #if CONFIG_TFT_D0 == -1
+        #error "Invalid QSPI Data 0 pin. Check TFT_eSPI configuration"
+    #else
+        #define TFT_D0      CONFIG_TFT_D0
+    #endif
+
+    #if CONFIG_TFT_D1 == -1
+        #error "Invalid QSPI Data 1 pin. Check TFT_eSPI configuration"
+    #else
+        #define TFT_D1      CONFIG_TFT_D1
+    #endif
+
+    #if CONFIG_TFT_D2 == -1
+        #error "Invalid QSPI Data 2 pin. Check TFT_eSPI configuration"
+    #else
+        #define TFT_D2      CONFIG_TFT_D2
+    #endif
+
+    #if CONFIG_TFT_D3 == -1
+        #error "Invalid QSPI Data 3 pin. Check TFT_eSPI configuration"
+    #else
+        #define TFT_D3      CONFIG_TFT_D3
+    #endif
+
+    #if CONFIG_TFT_SCLK == -1
+        #error "Invalid QSPI Clock pin. Check TFT_eSPI configuration"
+    #else
+        #define TFT_SCLK    CONFIG_TFT_SCLK
+    #endif
+
+    #if CONFIG_TFT_HSPI_PORT
+        #define USE_HSPI_PORT
+    #endif
+
+    #define SPI_FREQUENCY CONFIG_TFT_SPI_FREQUENCY
+
 // 8 BIT PARALLEL BUS
-#ifdef CONFIG_TFT_PARALLEL_8_BIT
+#elif defined(CONFIG_TFT_PARALLEL_8_BIT)
 
     #define TFT_PARALLEL_8_BIT
 

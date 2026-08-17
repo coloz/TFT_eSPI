@@ -714,6 +714,7 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
 #else
   void     writecommand(uint8_t c);  // Send an 8-bit command, function resets DC/RS high ready for data
 #endif
+  void     writecommand(uint8_t c, const uint8_t *data, uint32_t len); // Send command and parameters atomically
   void     writedata(uint8_t d);     // Send data with DC/RS set high
 
   void     commandList(const uint8_t *addr); // Send a initialisation sequence to TFT stored in FLASH
@@ -865,6 +866,17 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
            // Initialise the data bus GPIO and hardware interfaces
   void     initBus(void);
 
+#if defined(TFT_QSPI)
+           // ESP32-S3 1-1-4 QSPI backend. Register commands/parameters use
+           // one line and pixel payloads use all four data lines.
+  void     qspiBusInit(void);
+  void     qspiWriteCommand(uint8_t command, const uint8_t *data, uint32_t length);
+  void     qspiWriteData(uint8_t data);
+  void     qspiWriteColor(uint16_t color);
+  void     qspiWriteBlock(uint16_t color, uint32_t length);
+  void     qspiWritePixels(const void *data, uint32_t length, bool swap_bytes);
+#endif
+
            // Temporary  library development function  TODO: remove need for this
   void     pushSwapBytePixels(const void* data_in, uint32_t len);
 
@@ -889,6 +901,11 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
            // Display variant settings
   uint8_t  tabcolor;                   // ST7735 screen protector "tab" colour (now invalid)
   int16_t  colstart = 0, rowstart = 0; // Screen display area to CGRAM area coordinate offsets
+
+#if defined(TFT_QSPI)
+  uint8_t  _qspiLastCommand;
+  bool     _qspiRamWriteStarted;
+#endif
 
            // Port and pin masks for control signals (ESP826 only) - TODO: remove need for this
   volatile uint32_t *dcport, *csport;

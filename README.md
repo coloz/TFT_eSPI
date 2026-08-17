@@ -70,20 +70,20 @@ Optimised drivers have been tested with the following processors:
 
 The library supports the following interface types for these processors:
 
-| Processor | 4 wire SPI | 8-bit parallel | 16-bit parallel |   DMA support    |
-|-----------|    :---:   |     :---:      |      :---:      |       :---:      |
-| RP2040    |     Yes    |      Yes       |       Yes       |  Yes (all)       |
-| ESP32     |     Yes    |      Yes       |       No        |  Yes (SPI only)  |
-| ESP32 C3  |     Yes    |      No        |       No        |  No              |
-| ESP32 C5  |     Yes    | Compile-tested |       No        |  Experimental    |
-| ESP32 C6  |     Yes    | Compile-tested |       No        |  Experimental    |
-| ESP32 H2  |     Yes    | Compile-tested |       No        |  Experimental    |
-| ESP32 S2  |     Yes    |      No        |       No        |  No              |
-| ESP32 S3  |     Yes    |      Yes       |       No        |  Yes (SPI only)  |
-| ESP32 P4  |     Yes    |      Yes       |       No        |  Yes (SPI only)  |
-| ESP8266   |     Yes    |      No        |       No        |  No              |
-| STM32Fxxx |     Yes    |      Yes       |       No        |  Yes (SPI only)  |
-| Other     |     Yes    |      No        |       No        |  No              |
+| Processor | 4 wire SPI | QSPI | 8-bit parallel | 16-bit parallel |   DMA support    |
+|-----------|    :---:   | :--: |     :---:      |      :---:      |       :---:      |
+| RP2040    |     Yes    |  No  |      Yes       |       Yes       |  Yes (all)       |
+| ESP32     |     Yes    |  No  |      Yes       |       No        |  Yes (SPI only)  |
+| ESP32 C3  |     Yes    |  No  |      No        |       No        |  No              |
+| ESP32 C5  |     Yes    |  No  | Compile-tested |       No        |  Experimental    |
+| ESP32 C6  |     Yes    |  No  | Compile-tested |       No        |  Experimental    |
+| ESP32 H2  |     Yes    |  No  | Compile-tested |       No        |  Experimental    |
+| ESP32 S2  |     Yes    |  No  |      No        |       No        |  No              |
+| ESP32 S3  |     Yes    | CH13613 |   Yes       |       No        | Yes (SPI/QSPI)   |
+| ESP32 P4  |     Yes    |  No  |      Yes       |       No        |  Yes (SPI only)  |
+| ESP8266   |     Yes    |  No  |      No        |       No        |  No              |
+| STM32Fxxx |     Yes    |  No  |      Yes       |       No        |  Yes (SPI only)  |
+| Other     |     Yes    |  No  |      No        |       No        |  No              |
 
 For other (generic) processors only SPI interface displays are supported and the slower Arduino SPI library functions are used by the library. Higher clock speed processors such as used for the Teensy 3.x and 4.x boards will still provide a very good performance with the generic Arduino SPI functions.
 
@@ -100,6 +100,7 @@ Support for the XPT2046 touch screen controller is built into the library and ca
 Displays using the following controllers are supported:
 
 * AXS15231B
+* CH13613
 * CO5300
 * GC9A01
 * GC9C01
@@ -159,8 +160,31 @@ Displays using the following controllers are supported:
 The added controller command sets and initialization tables are based on
 [Arduino_GFX](https://github.com/moononournation/Arduino_GFX/tree/master/src/display)
 and [displaylib_16bit_PICO](https://github.com/gavinlyonsrepo/displaylib_16bit_PICO).
-Controller support uses TFT_eSPI's existing SPI and parallel bus backends; modules
-wired exclusively for QSPI, RGB or MIPI DSI still require a matching bus backend.
+Controller support normally uses TFT_eSPI's SPI and parallel bus backends. A dedicated
+ESP32-S3 QSPI backend is available for CH13613; other modules wired exclusively for
+QSPI, RGB or MIPI DSI still require a matching bus backend.
+
+## CH13613 QSPI support
+
+The OSPTEK AM160Q480480LK 480 x 480 AMOLED is supported on ESP32-S3 with the
+1-1-4 QSPI protocol. Commands and parameters use one data line and RGB565 pixel
+payloads use four data lines. The backend uses the ESP-IDF SPI master DMA engine
+internally and implements `RAMWRC` so segmented TFT_eSPI drawing calls continue
+within the current address window.
+
+Select `User_Setups/Setup_CH13613_ESP32_S3_QSPI.h` in `User_Setup_Select.h` and
+change `TFT_CS`, `TFT_SCLK`, `TFT_D0`, `TFT_D1`, `TFT_D2`, `TFT_D3` and `TFT_RST`
+to match the board. The supplied defaults match the vendor ESP32-S3 example and
+use SPI2 at 40 MHz. Define `USE_HSPI_PORT` in the setup to use SPI3 instead.
+
+Register and framebuffer reads are not supported. The CH13613 reference driver
+does not support row mirroring or X/Y exchange, so `setRotation()` remains at
+rotation 0. For commands with parameters, use the atomic
+`writecommand(command, data, length)` overload; a sequence of multiple legacy
+`writedata()` calls cannot represent one QSPI parameter transaction.
+
+The panel initialization and wire protocol are based on the
+[OSPTEK CH13613 reference project](https://github.com/osptek/1.6-amoled-480x480-qspi-ch13613).
 
 ILI9341 and ST7796 SPI based displays are recommended as starting point for experimenting with this library.
 
