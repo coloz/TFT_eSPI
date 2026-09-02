@@ -29,8 +29,43 @@
   #include "Processors/TFT_eSPI_STM32.c"
 #elif defined (ARDUINO_ARCH_RP2040)  || defined (ARDUINO_ARCH_MBED) // Raspberry Pi Pico
   #include "Processors/TFT_eSPI_RP2040.c"
+#elif defined (ARDUINO_ARCH_CI13XX)
+  #include "Processors/TFT_eSPI_CI13XX.c"
 #else
   #include "Processors/TFT_eSPI_Generic.c"
+#endif
+
+// The CI130X newlib configuration does not provide the non-standard Arduino
+// ltoa() helper. Keep the compatibility implementation private to this
+// translation unit so including TFT_eSPI.h does not change sketch symbols.
+#if defined (ARDUINO_ARCH_CI13XX)
+static char *tft_espi_ci13xx_ltoa(long value, char *buffer, int base)
+{
+  if (buffer == nullptr || base < 2 || base > 36) return buffer;
+
+  const bool negative = value < 0 && base == 10;
+  unsigned long magnitude = negative
+                              ? 0UL - static_cast<unsigned long>(value)
+                              : static_cast<unsigned long>(value);
+  char *cursor = buffer;
+  do {
+    const unsigned long digit = magnitude % static_cast<unsigned long>(base);
+    *cursor++ = static_cast<char>(digit < 10 ? '0' + digit
+                                             : 'a' + (digit - 10));
+    magnitude /= static_cast<unsigned long>(base);
+  } while (magnitude != 0);
+  if (negative) *cursor++ = '-';
+  *cursor = '\0';
+
+  for (char *left = buffer, *right = cursor - 1; left < right;
+       ++left, --right) {
+    const char temp = *left;
+    *left = *right;
+    *right = temp;
+  }
+  return buffer;
+}
+#define ltoa tft_espi_ci13xx_ltoa
 #endif
 
 #ifndef SPI_BUSY_CHECK
@@ -717,7 +752,7 @@ void TFT_eSPI::init(uint8_t tc)
   {
     initBus();
 
-#if !defined (ESP32) && !defined(TFT_PARALLEL_8_BIT) && !defined(ARDUINO_ARCH_RP2040) && !defined (ARDUINO_ARCH_MBED)
+#if !defined (ESP32) && !defined(TFT_PARALLEL_8_BIT) && !defined(ARDUINO_ARCH_RP2040) && !defined (ARDUINO_ARCH_MBED) && !defined (ARDUINO_ARCH_CI13XX)
   // Legacy bitmasks for GPIO
   #if defined (TFT_CS) && (TFT_CS >= 0)
     cspinmask = (uint32_t) digitalPinToBitMask(TFT_CS);

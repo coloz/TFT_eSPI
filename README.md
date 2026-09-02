@@ -83,9 +83,12 @@ The library supports the following interface types for these processors:
 | ESP32 P4  |     Yes    |  No  |      Yes       |       No        |  Yes (SPI only)  |
 | ESP8266   |     Yes    |  No  |      No        |       No        |  No              |
 | STM32Fxxx |     Yes    |  No  |      Yes       |       No        |  Yes (SPI only)  |
+| CI130X    |     Yes    |  No  |      No        |       No        |  No              |
 | Other     |     Yes    |  No  |      No        |       No        |  No              |
 
 For other (generic) processors only SPI interface displays are supported and the slower Arduino SPI library functions are used by the library. Higher clock speed processors such as used for the Teensy 3.x and 4.x boards will still provide a very good performance with the generic Arduino SPI functions.
+
+CI1302, CI1303 and CI1306 use the generic drawing backend with the arduino-ci130x GPIO software-SPI implementation. `User_Setups/Setup130_CI130X_ST7789.h` supplies a 240x320 ST7789 starting point and follows each board variant's `SCK`, `MISO`, `MOSI` and `SS` aliases. Generic CI1306 builds automatically use `Setup131_CI1306_ST7789_240x240.h` for the PA5/PA3/PA2/PA6/PB0/PA7 wired display. The requested SPI clock is capped at 4 MHz, actual throughput is lower, and DMA/parallel/QSPI modes are unavailable. The default route shares IIS-labelled pads on generic variants, so use the packaged `Algorithm=null` profile and check custom audio or peripheral pin assignments.
 
 4 wire SPI means the display must have SPI interface compatible signals and a "Data/Command" control signal, this signal line is sometimes labelled DC, RS or A0. 
 

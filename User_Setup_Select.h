@@ -32,6 +32,18 @@
 
 #endif
 
+// CI130X uses a GPIO software-SPI backend and cannot use the ESP32-oriented
+// default setup below. TFT_ESPI_USER_SETUP_PATH still takes precedence, so a
+// project can select another controller or pin map without editing this file.
+#if defined(ARDUINO_ARCH_CI13XX) && !defined(USER_SETUP_LOADED)
+  #define USER_SETUP_LOADED
+  #if defined(ARDUINO_CI1306) && !defined(ARDUINO_CI_D06GT01D) && !defined(ARDUINO_EASYVOICE_1306_DEV)
+    #include <User_Setups/Setup131_CI1306_ST7789_240x240.h>
+  #else
+    #include <User_Setups/Setup130_CI130X_ST7789.h>
+  #endif
+#endif
+
 #ifndef USER_SETUP_LOADED //  Lets PlatformIO users define settings in
                           //  platformio.ini, see notes in "Tools" folder.
 
@@ -134,6 +146,9 @@
 //#include <User_Setups/Setup106_RP2040_ILI9481_16bit_parallel.h> // Setup file for RP2040 16-bit parallel display
 //#include <User_Setups/Setup107_RP2040_ILI9341_16bit_parallel.h> // Setup file for RP2040 16-bit parallel display
 //#include <User_Setups/Setup108_RP2040_ST7735.h> // Setup file for Waveshare RP2040 board with onboard ST7735 0.96" 160x80 display
+
+//#include <User_Setups/Setup130_CI130X_ST7789.h> // CI130X GPIO software SPI, ST7789 240x320
+//#include <User_Setups/Setup131_CI1306_ST7789_240x240.h> // Generic CI1306, wired 240x240 ST7789
 
 //#include <User_Setups/Setup135_ST7789.h>           // Setup file for ESP8266 and ST7789 135 x 240 TFT
 
