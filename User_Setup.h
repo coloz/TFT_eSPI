@@ -68,7 +68,7 @@
 //#define GC9D01_DRIVER      // 160 x 160 dual gate or 40/50/60 x 160 single gate
 //#define CH13613_DRIVER     // 480 x 480 AMOLED, QSPI on ESP32-S3
 //#define AXS15231B_DRIVER
-//#define CO5300_DRIVER
+//#define CO5300_DRIVER      // 480 x 480 AMOLED; add TFT_QSPI for ESP32-S3/S31 QSPI
 //#define GC9106_DRIVER
 //#define GC9C01_DRIVER
 //#define HX8347C_DRIVER

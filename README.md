@@ -79,7 +79,8 @@ The library supports the following interface types for these processors:
 | ESP32 C6  |     Yes    |  No  | Compile-tested |       No        |  Experimental    |
 | ESP32 H2  |     Yes    |  No  | Compile-tested |       No        |  Experimental    |
 | ESP32 S2  |     Yes    |  No  |      No        |       No        |  No              |
-| ESP32 S3  |     Yes    | CH13613 |   Yes       |       No        | Yes (SPI/QSPI)   |
+| ESP32 S3  |     Yes    | CH13613, CO5300 |   Yes       |       No        | Yes (SPI/QSPI)   |
+| ESP32 S31 | Compile-tested | CO5300 | Not tested |       No        | QSPI; SPI experimental |
 | ESP32 P4  |     Yes    |  No  |      Yes       |       No        |  Yes (SPI only)  |
 | ESP8266   |     Yes    |  No  |      No        |       No        |  No              |
 | STM32Fxxx |     Yes    |  No  |      Yes       |       No        |  Yes (SPI only)  |
@@ -164,7 +165,7 @@ The added controller command sets and initialization tables are based on
 [Arduino_GFX](https://github.com/moononournation/Arduino_GFX/tree/master/src/display)
 and [displaylib_16bit_PICO](https://github.com/gavinlyonsrepo/displaylib_16bit_PICO).
 Controller support normally uses TFT_eSPI's SPI and parallel bus backends. A dedicated
-ESP32-S3 QSPI backend is available for CH13613; other modules wired exclusively for
+ESP32-S3/S31 QSPI backend is available for CH13613 and CO5300; other modules wired exclusively for
 QSPI, RGB or MIPI DSI still require a matching bus backend.
 
 ## CH13613 QSPI support
@@ -188,6 +189,52 @@ rotation 0. For commands with parameters, use the atomic
 
 The panel initialization and wire protocol are based on the
 [OSPTEK CH13613 reference project](https://github.com/osptek/1.6-amoled-480x480-qspi-ch13613).
+
+## CO5300 480 x 480 QSPI support
+
+Select `User_Setups/Setup_CO5300_ESP32_S3_QSPI.h` in `User_Setup_Select.h`
+(disable the other active setup). For a custom setup, define
+both `CO5300_DRIVER` and `TFT_QSPI`, with `TFT_WIDTH` and `TFT_HEIGHT` set to 480.
+ESP-IDF users can select CO5300 and QSPI in menuconfig on ESP32-S3/S31; GPIO
+backlight control should be disabled for this AMOLED panel.
+
+Set `TFT_CS`, `TFT_SCLK`, `TFT_D0` through `TFT_D3`, and `TFT_RST` for your board.
+The supplied pins are example wiring, not a universal CO5300 module pinout.
+The setup uses SPI2, mode 0, at 40 MHz; `USE_HSPI_PORT` selects SPI3.
+There is no DC pin. Any board-specific panel power enable must be configured
+before `tft.init()`. Brightness is controlled through the panel register:
+
+```cpp
+const uint8_t brightness = 208; // 0..255
+tft.writecommand(0x51, &brightness, 1);
+```
+
+The driver uses RGB565 and the shared 1-1-4 QSPI DMA transport, including
+`RAMWRC` for segmented pixel writes. Drawing and DMA API calls complete
+synchronously. Register/framebuffer reads and TE synchronization are not
+implemented. QSPI `setRotation()` currently stays at native rotation 0;
+the legacy mirroring values do not implement X/Y exchange. Red/blue order
+can be changed with `TFT_RGB_ORDER TFT_BGR`; cropped panels can use the
+`CO5300_COL_OFFSET1` and `CO5300_ROW_OFFSET1` setup options.
+
+Initialization follows the
+[Arduino_GFX CO5300 driver](https://github.com/moononournation/Arduino_GFX/blob/master/src/display/Arduino_CO5300.h).
+The wire protocol and memory-write continuation follow the
+[CO5300 datasheet](https://dl.espressif.com/AE/esp-iot-solution/CO5300_Datasheet_V0.00.pdf).
+Panel-specific initialization may still be required by the module supplier.
+
+### ESP32-S31
+
+ESP32-S31 uses the shared S3/P4 SPI backend with the S31 register definitions,
+GPIO banks, SPI2/SPI3 signal names, and SPI update/DMA register handling.
+Use an Arduino core that defines `CONFIG_IDF_TARGET_ESP32S31`, such as the
+4.0.0-RC1 / ESP-IDF 6.1 SDK. S31 is a separate RISC-V target; select
+`ESP32S31 Dev Module`, not `ESP32S3 Dev Module`.
+
+Use the same CO5300 QSPI configuration options described above, with pins
+chosen for the actual S31 board. No board-specific pin map or power sequence
+is selected automatically. Peripheral power control belongs in the board
+variant or application, not the display driver.
 
 ILI9341 and ST7796 SPI based displays are recommended as starting point for experimenting with this library.
 

@@ -1,5 +1,5 @@
         ////////////////////////////////////////////////////
-        // TFT_eSPI driver functions for ESP32-S3/P4 processors //
+        // TFT_eSPI driver functions for ESP32-S3/P4/S31 processors //
         ////////////////////////////////////////////////////
 
 // Temporarily a separate file to TFT_eSPI_ESP32.c until board package low level API stabilises
@@ -64,7 +64,7 @@
 
 #if defined(TFT_QSPI)
 ////////////////////////////////////////////////////////////////////////////////////////
-// ESP32-S3 1-1-4 QSPI backend
+// ESP32-S3/S31 1-1-4 QSPI backend
 ////////////////////////////////////////////////////////////////////////////////////////
 
 static void qspiCheck(esp_err_t result)
@@ -82,6 +82,10 @@ void TFT_eSPI::qspiBusInit(void)
   buscfg.sclk_io_num = TFT_SCLK;
   buscfg.quadwp_io_num = TFT_D2;
   buscfg.quadhd_io_num = TFT_D3;
+  buscfg.data4_io_num = -1;
+  buscfg.data5_io_num = -1;
+  buscfg.data6_io_num = -1;
+  buscfg.data7_io_num = -1;
   buscfg.max_transfer_sz = 4096;
 
   esp_err_t result = spi_bus_initialize(qspiHost, &buscfg, SPI_DMA_CH_AUTO);
@@ -246,7 +250,7 @@ void TFT_eSPI::qspiWriteColor(uint16_t color)
 void TFT_eSPI::begin_SDA_Read(void)
 {
   gpio_set_direction((gpio_num_t)TFT_MOSI, GPIO_MODE_INPUT);
-  #if CONFIG_IDF_TARGET_ESP32P4
+  #if CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     #ifdef USE_HSPI_PORT
       pinMatrixInAttach(TFT_MOSI, SPI3_Q_PAD_IN_IDX, false);
     #else
@@ -265,7 +269,7 @@ void TFT_eSPI::begin_SDA_Read(void)
 void TFT_eSPI::end_SDA_Read(void)
 {
   gpio_set_direction((gpio_num_t)TFT_MOSI, GPIO_MODE_OUTPUT);
-  #if CONFIG_IDF_TARGET_ESP32P4
+  #if CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     #ifdef USE_HSPI_PORT
       pinMatrixOutAttach(TFT_MOSI, SPI3_D_PAD_OUT_IDX, false, false);
     #else
@@ -480,7 +484,7 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
     while (*_spi_cmd&SPI_USR);
     for (i=0; i < rem; i+=2) *spi_w++ = color32;
     *_spi_mosi_dlen = (rem << 4) - 1;
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     *_spi_cmd = SPI_UPDATE;
     while (*_spi_cmd & SPI_UPDATE);
 #endif
@@ -497,7 +501,7 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
   while(len)
   {
     while (*_spi_cmd&SPI_USR);
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     *_spi_cmd = SPI_UPDATE;
     while (*_spi_cmd & SPI_UPDATE);
 #endif
@@ -546,7 +550,7 @@ void TFT_eSPI::pushSwapBytePixels(const void* data_in, uint32_t len){
       WRITE_PERI_REG(SPI_W13_REG(SPI_PORT), color[13]);
       WRITE_PERI_REG(SPI_W14_REG(SPI_PORT), color[14]);
       WRITE_PERI_REG(SPI_W15_REG(SPI_PORT), color[15]);
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
       SET_PERI_REG_MASK(SPI_CMD_REG(SPI_PORT), SPI_UPDATE);
       while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_UPDATE);
 #endif
@@ -573,7 +577,7 @@ void TFT_eSPI::pushSwapBytePixels(const void* data_in, uint32_t len){
     WRITE_PERI_REG(SPI_W5_REG(SPI_PORT),  color[5]);
     WRITE_PERI_REG(SPI_W6_REG(SPI_PORT),  color[6]);
     WRITE_PERI_REG(SPI_W7_REG(SPI_PORT),  color[7]);
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     SET_PERI_REG_MASK(SPI_CMD_REG(SPI_PORT), SPI_UPDATE);
     while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_UPDATE);
 #endif
@@ -588,7 +592,7 @@ void TFT_eSPI::pushSwapBytePixels(const void* data_in, uint32_t len){
     for (uint32_t i=0; i <= (len<<1); i+=4) {
       WRITE_PERI_REG(SPI_W0_REG(SPI_PORT)+i, DAT8TO32(data)); data+=4;
     }
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     SET_PERI_REG_MASK(SPI_CMD_REG(SPI_PORT), SPI_UPDATE);
     while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_UPDATE);
 #endif
@@ -637,7 +641,7 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
       WRITE_PERI_REG(SPI_W13_REG(SPI_PORT), *data++);
       WRITE_PERI_REG(SPI_W14_REG(SPI_PORT), *data++);
       WRITE_PERI_REG(SPI_W15_REG(SPI_PORT), *data++);
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
       SET_PERI_REG_MASK(SPI_CMD_REG(SPI_PORT), SPI_UPDATE);
       while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_UPDATE);
 #endif
@@ -651,7 +655,7 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
     while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_USR);
     WRITE_PERI_REG(SPI_MOSI_DLEN_REG(SPI_PORT), (len << 4) - 1);
     for (uint32_t i=0; i <= (len<<1); i+=4) WRITE_PERI_REG((SPI_W0_REG(SPI_PORT) + i), *data++);
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
       SET_PERI_REG_MASK(SPI_CMD_REG(SPI_PORT), SPI_UPDATE);
       while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_UPDATE);
 #endif
@@ -705,7 +709,7 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
       WRITE_PERI_REG(SPI_W12_REG(SPI_PORT), r0);
       WRITE_PERI_REG(SPI_W13_REG(SPI_PORT), r1);
       WRITE_PERI_REG(SPI_W14_REG(SPI_PORT), r2);
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
       SET_PERI_REG_MASK(SPI_CMD_REG(SPI_PORT), SPI_UPDATE);
       while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_UPDATE);
 #endif
@@ -736,7 +740,7 @@ void TFT_eSPI::pushBlock(uint16_t color, uint32_t len)
       WRITE_PERI_REG(SPI_W13_REG(SPI_PORT), r1);
       WRITE_PERI_REG(SPI_W14_REG(SPI_PORT), r2);
     }
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     SET_PERI_REG_MASK(SPI_CMD_REG(SPI_PORT), SPI_UPDATE);
     while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_UPDATE);
 #endif
@@ -1123,8 +1127,8 @@ extern "C" void dma_end_callback();
 
 void IRAM_ATTR dma_end_callback(spi_transaction_t *spi_tx)
 {
-  #if CONFIG_IDF_TARGET_ESP32P4
-    // SPI_DMA_CH_AUTO is a DMA selector, not a GP-SPI register index on P4.
+  #if CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
+    // SPI_DMA_CH_AUTO is a DMA selector, not a GP-SPI register index.
     WRITE_PERI_REG(SPI_DMA_CONF_REG(SPI_PORT), 0);
   #else
     WRITE_PERI_REG(SPI_DMA_CONF_REG(DMA_CHANNEL), 0);

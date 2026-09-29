@@ -68,6 +68,15 @@
 
 #include <User_Setup_Select.h>
 
+#if defined(TFT_QSPI)
+  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32S31)
+    #error "TFT_eSPI QSPI requires ESP32-S3 or ESP32-S31"
+  #endif
+  #if defined(TFT_PARALLEL_8_BIT) || defined(TFT_PARALLEL_16_BIT) || defined(RP2040_PIO_INTERFACE)
+    #error "TFT_QSPI cannot be combined with another display bus"
+  #endif
+#endif
+
 // Handle FLASH based storage e.g. PROGMEM
 #if defined(ARDUINO_ARCH_RP2040)
   #undef pgm_read_byte
@@ -100,7 +109,7 @@
 #endif
 
 // Include the processor specific drivers
-#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S31)
   #include "Processors/TFT_eSPI_ESP32_S3.h"
 #elif defined(TFT_ESPI_ESP32_RISCV)
   #include "Processors/TFT_eSPI_ESP32_C3.h"
@@ -870,7 +879,7 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
   void     initBus(void);
 
 #if defined(TFT_QSPI)
-           // ESP32-S3 1-1-4 QSPI backend. Register commands/parameters use
+           // ESP32-S3/S31 1-1-4 QSPI backend. Register commands/parameters use
            // one line and pixel payloads use all four data lines.
   void     qspiBusInit(void);
   void     qspiWriteCommand(uint8_t command, const uint8_t *data, uint32_t length);

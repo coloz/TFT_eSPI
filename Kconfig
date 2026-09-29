@@ -76,12 +76,14 @@ menu "TFT_eSPI"
         config TFT_GC9D01_DRIVER
             bool "GC9D01"
         config TFT_CH13613_DRIVER
-            bool "CH13613 (ESP32-S3 QSPI)"
-            depends on IDF_TARGET_ESP32S3
+            bool "CH13613 (ESP32-S3/S31 QSPI)"
+            depends on IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32S31
         config TFT_AXS15231B_DRIVER
             bool "AXS15231B"
         config TFT_CO5300_DRIVER
             bool "CO5300"
+            help
+                480 x 480 AMOLED. QSPI is available on ESP32-S3 and ESP32-S31.
         config TFT_GC9106_DRIVER
             bool "GC9106"
         config TFT_GC9C01_DRIVER
@@ -146,7 +148,7 @@ menu "TFT_eSPI"
             bool "WEA2012"
     endchoice
 
-    if TFT_ST7735_DRIVER || TFT_ST7789_DRIVER || TFT_ST7789_2_DRIVER || TFT_ILI9341_DRIVER || TFT_ILI9341_2_DRIVER || TFT_GC9107_DRIVER || TFT_GC9D01_DRIVER || TFT_SSD1331_DRIVER
+    if TFT_ST7735_DRIVER || TFT_ST7789_DRIVER || TFT_ST7789_2_DRIVER || TFT_ILI9341_DRIVER || TFT_ILI9341_2_DRIVER || TFT_GC9107_DRIVER || TFT_GC9D01_DRIVER || TFT_SSD1331_DRIVER || TFT_CO5300_DRIVER
         choice TFT_COLOR_ORDER
             prompt "Define the colour order"
             help
@@ -167,9 +169,10 @@ menu "TFT_eSPI"
         help
             Enable if using M5Stack module with integrated ILI9341
 
-    if TFT_ST7735_DRIVER || TFT_ST7789_DRIVER || TFT_ST7789_2_DRIVER || TFT_ILI9163_DRIVER || TFT_GC9A01_DRIVER || TFT_GC9107_DRIVER || TFT_GC9D01_DRIVER || TFT_SSD1331_DRIVER || TFT_SSD1306_DRIVER || TFT_SH1106_DRIVER || TFT_SSD1357_DRIVER
+    if TFT_ST7735_DRIVER || TFT_ST7789_DRIVER || TFT_ST7789_2_DRIVER || TFT_ILI9163_DRIVER || TFT_GC9A01_DRIVER || TFT_GC9107_DRIVER || TFT_GC9D01_DRIVER || TFT_SSD1331_DRIVER || TFT_SSD1306_DRIVER || TFT_SH1106_DRIVER || TFT_SSD1357_DRIVER || TFT_CO5300_DRIVER
         config TFT_WIDTH
             int "LCD pixel width in portrait orientation"
+            default 480 if TFT_CO5300_DRIVER
             default 160 if TFT_GC9D01_DRIVER
             default 96 if TFT_SSD1331_DRIVER
             default 128 if TFT_SSD1306_DRIVER || TFT_SH1106_DRIVER || TFT_SSD1357_DRIVER
@@ -178,6 +181,7 @@ menu "TFT_eSPI"
 
         config TFT_HEIGHT
             int "LCD pixel height in portrait orientation"
+            default 480 if TFT_CO5300_DRIVER
             default 160 if TFT_GC9D01_DRIVER
             default 64 if TFT_SSD1331_DRIVER
             default 64 if TFT_SSD1306_DRIVER || TFT_SH1106_DRIVER
@@ -313,6 +317,7 @@ menu "TFT_eSPI"
     choice TFT_INTERFACE
         prompt "LCD Interface"
         default TFT_QSPI if TFT_CH13613_DRIVER
+        default TFT_QSPI if TFT_CO5300_DRIVER && (IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32S31)
         default TFT_SPI
         help
             Communication interface between the microcontroller and the LCD.
@@ -320,8 +325,8 @@ menu "TFT_eSPI"
             bool "SPI"
             depends on !TFT_CH13613_DRIVER
         config TFT_QSPI
-            bool "QSPI (ESP32-S3, 1-1-4)"
-            depends on TFT_CH13613_DRIVER && IDF_TARGET_ESP32S3
+            bool "QSPI (ESP32-S3/S31, 1-1-4)"
+            depends on (TFT_CH13613_DRIVER || TFT_CO5300_DRIVER) && (IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32S31)
         config TFT_PARALLEL_8_BIT
             bool "Parallel (8-bit)"
             depends on !TFT_CH13613_DRIVER
@@ -333,67 +338,81 @@ menu "TFT_eSPI"
             int "Data 0 pin (QSPI IO0)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 48 if IDF_TARGET_ESP32S3
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S3 && !IDF_TARGET_ESP32S31
 
         config TFT_D1
             int "Data 1 pin (QSPI IO1)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 48 if IDF_TARGET_ESP32S3
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S3 && !IDF_TARGET_ESP32S31
 
         config TFT_D2
             int "Data 2 pin (QSPI IO2)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 48 if IDF_TARGET_ESP32S3
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S3 && !IDF_TARGET_ESP32S31
         
         config TFT_D3
             int "Data 3 pin (QSPI IO3)"
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 48 if IDF_TARGET_ESP32S3
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S3 && !IDF_TARGET_ESP32S31
 
         config TFT_D4
             int "Data 4 pin"
             depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S31
 
         config TFT_D5
             int "Data 5 pin"
             depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S31
 
         config TFT_D6
             int "Data 6 pin"
             depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S31
 
         config TFT_D7
             int "Data 7 pin"
             depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S31
 
         config TFT_WR
             int "Write strobe pin"
             depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S31
 
         config TFT_RD
             int "Read strobe pin"
             depends on TFT_PARALLEL_8_BIT
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 33 if !IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 33 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S31
     endmenu
 
     menu "Display SPI config"
@@ -420,6 +439,7 @@ menu "TFT_eSPI"
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
             range -1 54 if IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
             help
                 Master In Slave Out pin.
                 Can be labelled as SDO in some displays
@@ -432,6 +452,7 @@ menu "TFT_eSPI"
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
             range -1 54 if IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
             help
                 Master Out Slave In pin.
                 Can be labelled as SDA or SDI in some displays
@@ -443,6 +464,7 @@ menu "TFT_eSPI"
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
             range -1 54 if IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
             help
                 Labelled in some displays as WR
 
@@ -456,6 +478,7 @@ menu "TFT_eSPI"
 
         config TFT_SPI_FREQUENCY
             int "SPI Frequency (Hz)"
+            default 40000000 if TFT_QSPI
             default 27000000
             range 1 80000000
             help
@@ -484,12 +507,15 @@ menu "TFT_eSPI"
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
             range -1 54 if IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
     
         config TFT_DC
             int "TFT Data/Command pin"
+            depends on !TFT_QSPI
             default -1
             range -1 54 if IDF_TARGET_ESP32P4
-            range -1 31 if !IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
+            range -1 31 if !IDF_TARGET_ESP32P4 && !IDF_TARGET_ESP32S31
             help
                 Labelled as DC or RS (Register Select) in some displays
     
@@ -500,9 +526,11 @@ menu "TFT_eSPI"
             range -1 45 if IDF_TARGET_ESP32S2
             range -1 48 if IDF_TARGET_ESP32S3
             range -1 54 if IDF_TARGET_ESP32P4
+            range -1 61 if IDF_TARGET_ESP32S31
 
         config ENABLE_BL
             bool "Enable backlight control"
+            default n if TFT_QSPI
             default y
         
         if ENABLE_BL
@@ -513,6 +541,7 @@ menu "TFT_eSPI"
                 range -1 45 if IDF_TARGET_ESP32S2
                 range -1 48 if IDF_TARGET_ESP32S3
                 range -1 54 if IDF_TARGET_ESP32P4
+                range -1 61 if IDF_TARGET_ESP32S31
                 help
                     Pin for the backlight control signal
         
@@ -583,6 +612,7 @@ menu "TFT_eSPI"
                 range -1 45 if IDF_TARGET_ESP32S2
                 range -1 48 if IDF_TARGET_ESP32S3
                 range -1 54 if IDF_TARGET_ESP32P4
+                range -1 61 if IDF_TARGET_ESP32S31
 
             config SPI_TOUCH_FREQUENCY
                 int "SPI frequency for XPT2046 chip (Hz)"

@@ -1,5 +1,5 @@
         ////////////////////////////////////////////////////
-        // TFT_eSPI driver functions for ESP32-S3/P4 processors //
+        // TFT_eSPI driver functions for ESP32-S3/P4/S31 processors //
         ////////////////////////////////////////////////////
 
 // Temporarily a separate file to TFT_eSPI_ESP32.h until board package low level API stabilises
@@ -15,13 +15,13 @@
 #include "driver/spi_master.h"
 #include "hal/gpio_ll.h"
 
-#if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4) && !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32)
+#if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4) && !defined(CONFIG_IDF_TARGET_ESP32S31) && !defined(CONFIG_IDF_TARGET_ESP32S2) && !defined(CONFIG_IDF_TARGET_ESP32)
   #define CONFIG_IDF_TARGET_ESP32
 #endif
 
 #if defined(TFT_QSPI)
-  #if !defined(CONFIG_IDF_TARGET_ESP32S3)
-    #error "TFT_eSPI QSPI is currently supported on ESP32-S3 only"
+  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32S31)
+    #error "TFT_eSPI QSPI requires ESP32-S3 or ESP32-S31"
   #endif
   #if !defined(TFT_CS) || (TFT_CS < 0)
     #error "TFT_QSPI requires a valid TFT_CS pin"
@@ -35,9 +35,9 @@
   #define VSPI FSPI
 #endif
 
-// Fix IDF naming differences on ESP32-S3/P4
+// Fix IDF naming differences on ESP32-S3/P4/S31.
 // Note illogical enumerations: FSPI_HOST=SPI2_HOST=1   HSPI_HOST=SPI3_HOST=2
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
   // Supply the legacy register helpers used by this optimised driver when absent.
   #ifndef REG_SPI_BASE //                      HSPI                 FSPI/VSPI
     #define REG_SPI_BASE(i) (((i)>1) ? (DR_REG_SPI3_BASE) : (DR_REG_SPI2_BASE))
@@ -66,7 +66,7 @@ FSPI = 1, uses SPI2
 HSPI = 2, uses SPI3
 VSPI not defined so have made VSPI = HSPI
 
-For ESP32 C3, C5, C6, H2, P4, S2, S3, Arduino numbers FSPI/HSPI as
+For ESP32 C3, C5, C6, H2, P4, S2, S3, S31, Arduino numbers FSPI/HSPI as
 0/1 while ESP-IDF numbers SPI2_HOST/SPI3_HOST as 1/2. The direct register
 macros use the hardware indices 2/3, so SPI_PORT deliberately differs from
 the value passed to the SPIClass constructor.
@@ -88,14 +88,14 @@ the value passed to the SPIClass constructor.
     #define SPI_PORT 2 //FSPI(ESP32 S2)
   #elif CONFIG_IDF_TARGET_ESP32S3
     #define SPI_PORT 2
-  #elif CONFIG_IDF_TARGET_ESP32P4
+  #elif CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
     #define SPI_PORT 2
   #endif
 #endif
 
-// ESP32-P4 exposes both low and high GPIO output registers as unions. ESP32-S3
+// ESP32-P4/S31 expose both low and high GPIO output registers as unions. ESP32-S3
 // exposes the low bank as a scalar and the high bank as a union.
-#if CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_IDF_TARGET_ESP32P4 || CONFIG_IDF_TARGET_ESP32S31
   #define TFT_GPIO_OUT_CLR_LOW  GPIO.out_w1tc.val
   #define TFT_GPIO_OUT_SET_LOW  GPIO.out_w1ts.val
 #else
@@ -368,7 +368,7 @@ the value passed to the SPIClass constructor.
       #define TFT_SCLK 18
     #endif
 
-    #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S2)
+    #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S31) || defined(CONFIG_IDF_TARGET_ESP32S2)
       #if (TFT_MISO == -1)
         #undef TFT_MISO
         #define TFT_MISO TFT_MOSI
@@ -591,7 +591,7 @@ the value passed to the SPIClass constructor.
 // Macros for all other SPI displays
 ////////////////////////////////////////////////////////////////////////////////////////
 #else
-  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4)
+  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4) && !defined(CONFIG_IDF_TARGET_ESP32S31)
     #define TFT_WRITE_BITS(D, B) do {                       \
                                *_spi_mosi_dlen = B-1;       \
                                *_spi_w = D;                 \
@@ -615,7 +615,7 @@ the value passed to the SPIClass constructor.
   #define tft_Write_16(C) TFT_WRITE_BITS((C)<<8 | (C)>>8, 16)
 
   // Future option for transfer without wait
-  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4)
+  #if !defined(CONFIG_IDF_TARGET_ESP32S3) && !defined(CONFIG_IDF_TARGET_ESP32P4) && !defined(CONFIG_IDF_TARGET_ESP32S31)
     #define tft_Write_16N(C) do {                       \
                            *_spi_mosi_dlen = 16-1;      \
                            *_spi_w = ((C)<<8 | (C)>>8); \
@@ -653,7 +653,7 @@ the value passed to the SPIClass constructor.
 // Macros to read from display using SPI or software SPI
 ////////////////////////////////////////////////////////////////////////////////////////
 #if defined(TFT_QSPI)
-  // CH13613 QSPI register/pixel reads are not implemented.
+  // QSPI register/pixel reads are not implemented.
   #define tft_Read_8() 0
 #elif !defined (TFT_PARALLEL_8_BIT)
   // Read from display using SPI or software SPI

@@ -54,6 +54,7 @@
 
 //#include <User_Setups/Setup0_Sprite.h> // For Sprite-only use without a display
 #include <User_Setups/Setup_CH13613_ESP32_S3_QSPI.h> // OSPTEK 480x480 AMOLED
+//#include <User_Setups/Setup_CO5300_ESP32_S3_QSPI.h> // CO5300 480x480 AMOLED
 
 // Only ONE line below should be uncommented to define your setup.  Add extra lines and files as needed.
 

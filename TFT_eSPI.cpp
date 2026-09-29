@@ -16,7 +16,7 @@
 #include "TFT_eSPI.h"
 
 #if defined (ESP32)
-  #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4)
+  #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S31)
     #include "Processors/TFT_eSPI_ESP32_S3.c" // SPI2/SPI3 targets, tested with SPI and 8-bit parallel
   #elif defined(TFT_ESPI_ESP32_RISCV)
     #include "Processors/TFT_eSPI_ESP32_C3.c" // Single-GPSPI RISC-V targets (C3/C5/C6/H2)
@@ -4003,7 +4003,7 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
   // Range checking
   if ((x < _vpX) || (y < _vpY) ||(x >= _vpW) || (y >= _vpH)) return;
 
-#ifdef CGRAM_OFFSET
+#if defined(CGRAM_OFFSET) && !defined(TFT_QSPI)
   x+=colstart;
   y+=rowstart;
 #endif
@@ -4018,6 +4018,10 @@ void TFT_eSPI::drawPixel(int32_t x, int32_t y, uint32_t color)
 #if defined (TFT_MONO_DRIVER)
   _monoSetWindow(x, y, x, y);
   _monoPushBlock(color, 1);
+#elif defined (TFT_QSPI)
+  // setWindow applies the GRAM offsets and sends complete QSPI address commands.
+  setWindow(x, y, x, y);
+  qspiWriteColor(color);
 #elif defined (ILI9225_DRIVER)
   if (rotation & 0x01) { transpose(x, y); }
   SPI_BUSY_CHECK;
